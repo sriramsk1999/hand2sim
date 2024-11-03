@@ -1,10 +1,40 @@
 import os
 import pickle
+from glob import glob
 
 import cv2
 import numpy as np
 import open3d as o3d
 from robohive.utils.quat_math import euler2mat, mat2quat
+
+
+def check_hand_object_contact(segmasks):
+    """
+    Check for contact between a hand mask (in green) and any colored objects
+    in a list of segmentation masks. Specifically for HOI4D data
+    """
+    handObjectContact = []
+    lower_green = np.array([0, 128, 0])  # Lower bound for green in BGR
+    upper_green = np.array([100, 255, 100])  # Upper bound for green in BGR
+    kernel = np.ones((5, 5), np.uint8)
+
+    for segmask in segmasks:
+        hand_mask = cv2.inRange(segmask, lower_green, upper_green)
+        non_black_mask = cv2.cvtColor(segmask, cv2.COLOR_BGR2GRAY)
+        non_black_mask[non_black_mask > 0] = 255  # Set all non-black pixels to white
+        non_black_mask[non_black_mask == 0] = 0
+        object_mask = segmask > 0
+        object_mask = cv2.bitwise_and(non_black_mask, cv2.bitwise_not(hand_mask))
+
+        hand_dilated = cv2.dilate(hand_mask, kernel, iterations=1)
+        object_dilated = cv2.dilate(object_mask, kernel, iterations=1)
+        overlap = cv2.bitwise_and(hand_dilated, object_dilated)
+
+        if np.any(overlap):
+            handObjectContact.append(1)
+        else:
+            handObjectContact.append(0)
+    return np.array(handObjectContact)
 
 
 def load_hoi4d_trajectory(base_path):
@@ -36,11 +66,16 @@ def load_hoi4d_trajectory(base_path):
         f.close()
     cam2hand = np.array(cam2hand)
 
+    segmasks = np.array(
+        [cv2.imread(i) for i in sorted(glob(f"{base_path}/2Dseg/shift_mask/*png"))]
+    )
+
     camWorld2hand = camWorld2cam[idxs] @ cam2hand
-    return idxs, camWorld2hand
+    hoiContact = check_hand_object_contact(segmasks)[idxs]
+    return idxs, camWorld2hand, hoiContact
 
 
-def retarget_hand_trajectory(camWorld2hand, robotWorld2ee):
+def retarget_hand_trajectory(camWorld2hand, robotWorld2ee, handObjectContact):
     """
     Align hand coordinates with end effector.
     retarget the 4x4 extrinsics to quaternion/translation/gripper state
@@ -62,9 +97,14 @@ def retarget_hand_trajectory(camWorld2hand, robotWorld2ee):
     robot_trajectory_quat = mat2quat(robotWorld2hand[:, :3, :3])
     robot_trajectory_pos = robotWorld2hand[:, :3, 3]
 
-    # TODO: Handle gripper state properly
-    robot_gripper_state = np.zeros((robotWorld2hand.shape[0], 1))
+    robot_gripper_state = handObjectContact[:, None]
     trajectory = np.concatenate(
         [robot_trajectory_pos, robot_trajectory_quat, robot_gripper_state], axis=-1
     )
     return trajectory
+
+
+def get_hoi4d_trajectory(base_path, ee_pose):
+    valid_idxs, camWorld2hand, handObjectContact = load_hoi4d_trajectory(base_path)
+    trajectory = retarget_hand_trajectory(camWorld2hand, ee_pose, handObjectContact)
+    return trajectory, valid_idxs

@@ -7,7 +7,7 @@ from robohive.utils.inverse_kinematics import qpos_from_site_pose
 from robohive.utils.quat_math import quat2mat
 from tqdm import tqdm
 
-from hoi4d import load_hoi4d_trajectory, retarget_hand_trajectory
+from hoi4d import get_hoi4d_trajectory
 from utils import set_initial_ee_target, write_real_sim_video
 
 
@@ -40,13 +40,12 @@ def main(
     ee_pose = np.eye(4)
     ee_pose[:3, :3] = quat2mat(curr_quat)
     ee_pose[:3, 3] = curr_pos
-    valid_idxs, camWorld2hand = load_hoi4d_trajectory(base_path)
-    trajectory = retarget_hand_trajectory(camWorld2hand, ee_pose)
+    trajectory, valid_idxs = get_hoi4d_trajectory(base_path, ee_pose)
     horizon = trajectory.shape[0]
     env.reset()
 
     # recover init state
-    obs, rwd, done, _, env_info = env.forward()
+    _ = env.forward()
     act = np.zeros(env.action_space.shape)
     gripper_state = 0
     sim_imgs = []

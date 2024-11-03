@@ -30,7 +30,7 @@ def main(
     env.env.mujoco_render_frames = False
     goal_sid = env.sim.model.site_name2id(goal_site)
 
-    translation = [0.4, 0, 1.0]
+    translation = [0.4, 0, 1.1]
     rotation = [0, 0, 0, 1]
     set_initial_ee_target(env, goal_sid, translation, rotation)
 

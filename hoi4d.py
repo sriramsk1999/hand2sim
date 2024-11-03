@@ -80,12 +80,6 @@ def retarget_hand_trajectory(camWorld2hand, robotWorld2ee, handObjectContact):
     Align hand coordinates with end effector.
     retarget the 4x4 extrinsics to quaternion/translation/gripper state
     """
-    scale_factor = 0.75
-    # TODO: Scale translation more intelligently
-    # Scale down the translation of the trajectory
-    # so that end effector does not go out of reach of the robot
-    camWorld2hand[:, :3, 3] *= scale_factor
-
     robotWorld2camWorld = robotWorld2ee @ np.linalg.inv(camWorld2hand[0])
     robotWorld2hand = robotWorld2camWorld @ camWorld2hand
 
@@ -93,6 +87,22 @@ def retarget_hand_trajectory(camWorld2hand, robotWorld2ee, handObjectContact):
     align_rotation = np.eye(4)
     align_rotation[:3, :3] = euler2mat((0, np.pi, 0))
     robotWorld2hand = robotWorld2hand @ align_rotation
+
+    # Target ranges based on the reachable space of the robot in a RoboHive env
+    # Manually estimated with some teleop
+    target_x = np.array([0.2, 0.5])
+    target_y = np.array([-0.25, 0.25])
+    target_z = np.array([1, 1.3])
+
+    # SScale and shift the translation to fit into the robot workspace
+    for i, (min_target, max_target) in enumerate([target_x, target_y, target_z]):
+        v_min = np.min(robotWorld2hand[:, :3, i])
+        v_max = np.max(robotWorld2hand[:, :3, i])
+        robotWorld2hand[:, :3, i] = min_target + (
+            (robotWorld2hand[:, :3, i] - v_min)
+            * (max_target - min_target)
+            / (v_max - v_min)
+        )
 
     robot_trajectory_quat = mat2quat(robotWorld2hand[:, :3, :3])
     robot_trajectory_pos = robotWorld2hand[:, :3, 3]

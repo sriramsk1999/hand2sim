@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from hoi4d import HOI4DDataset
 from something_something import SomethingSomethingDataset
-from utils import set_initial_ee_target, write_real_sim_video
+from utils import set_initial_ee_target
 
 
 def main(
@@ -92,7 +92,7 @@ def main(
 
     sim_imgs = np.array(sim_imgs)
     output_name = base_path.replace("/", "_") + ".mp4"
-    write_real_sim_video(
+    dataset.write_real_sim_video(
         sim_imgs, base_path, valid_idxs, f"{output_path}/{output_name}"
     )
     env.close()

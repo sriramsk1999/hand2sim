@@ -47,31 +47,6 @@ def vis_trajectory(traj):
     )
 
 
-def write_real_sim_video(sim_imgs, base_path, valid_idxs, output_path):
-    """
-    Visualize sim video and real video side-by-side.
-    """
-    sim_imgs = np.array([cv2.cvtColor(i, cv2.COLOR_RGB2BGR) for i in sim_imgs])
-
-    real_imgs = np.array(
-        [cv2.imread(i) for i in sorted(glob(f"{base_path}/align_rgb/*jpg"))]
-    )
-    real_imgs = real_imgs[valid_idxs]
-    real_imgs = np.array(
-        [cv2.resize(i, (sim_imgs.shape[2], sim_imgs.shape[1])) for i in real_imgs]
-    )
-    real_and_sim = np.array([cv2.hconcat([i, j]) for i, j in zip(real_imgs, sim_imgs)])
-
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(
-        output_path, fourcc, 30, (real_and_sim.shape[2], real_and_sim.shape[1])
-    )
-
-    for frame in real_and_sim:
-        out.write(frame)
-    out.release()
-
-
 def set_initial_ee_target(env, goal_sid, translation, rotation):
     env.sim.model.site_rgba[goal_sid][3] = 0.2  # make visible
     # place ee target in a more suitable location / orientation

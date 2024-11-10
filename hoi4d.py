@@ -14,19 +14,17 @@ class HOI4DDataset:
 
     def get_trajectory(self, ee_pose):
         """
-        Load the trajectory at the base_path
+        Load the trajectory at `base_path`
         TODO: Currently just handles one trajectory
         """
-        valid_idxs, camWorld2hand, handObjectContact = self.load_hoi4d_trajectory(
-            self.base_path
-        )
+        valid_idxs, camWorld2hand, handObjectContact = self.load_trajectory()
         trajectory = self.retarget_hand_trajectory(
             camWorld2hand, ee_pose, handObjectContact
         )
         return trajectory, valid_idxs
 
-    def load_hoi4d_trajectory(self, base_path):
-        """loads a test trajectory.
+    def load_trajectory(self):
+        """loads a trajectory from hoi4d
         - validIdxs - mask of frames in which a hand is visible
         - camWorld2hand - The trajectory of the hand wrt /world/ camera (first frame of video)
         - hoiContact - Binary array indicating hand/object contact in every frame
@@ -37,7 +35,7 @@ class HOI4DDataset:
         overlaps with the object segmask.
         """
         cam_trajectory = o3d.io.read_pinhole_camera_trajectory(
-            f"{base_path}/3Dseg/output.log"
+            f"{self.base_path}/3Dseg/output.log"
         )
         K = cam_trajectory.parameters[0].intrinsic.intrinsic_matrix
         cam2camWorld = np.array([i.extrinsic for i in cam_trajectory.parameters])
@@ -46,10 +44,12 @@ class HOI4DDataset:
         cam2hand = []
         # in some frames, the hand might not be visible, filter these out
         validIdxs = np.array(
-            sorted([int(i.split(".")[0]) for i in os.listdir(f"{base_path}/handpose")])
+            sorted(
+                [int(i.split(".")[0]) for i in os.listdir(f"{self.base_path}/handpose")]
+            )
         )
         for idx in validIdxs:
-            f = open(f"{base_path}/handpose/{idx}.pickle", "rb")
+            f = open(f"{self.base_path}/handpose/{idx}.pickle", "rb")
             data = pickle.load(f)
             pose = np.eye(4)
             global_rot = data["poseCoeff"][:3]
@@ -60,9 +60,9 @@ class HOI4DDataset:
             f.close()
         cam2hand = np.array(cam2hand)
 
-        seg_dir = f"{base_path}/2Dseg/shift_mask/"
+        seg_dir = f"{self.base_path}/2Dseg/shift_mask/"
         if not os.path.exists(seg_dir):
-            seg_dir = f"{base_path}/2Dseg/mask/"
+            seg_dir = f"{self.base_path}/2Dseg/mask/"
 
         segmasks = np.array([cv2.imread(i) for i in sorted(glob(f"{seg_dir}/*png"))])
 
@@ -137,3 +137,29 @@ class HOI4DDataset:
             else:
                 handObjectContact.append(0)
         return np.array(handObjectContact)
+
+    def write_real_sim_video(self, sim_imgs, base_path, valid_idxs, output_path):
+        """
+        Visualize sim video and real video side-by-side.
+        """
+        sim_imgs = np.array([cv2.cvtColor(i, cv2.COLOR_RGB2BGR) for i in sim_imgs])
+
+        real_imgs = np.array(
+            [cv2.imread(i) for i in sorted(glob(f"{base_path}/align_rgb/*jpg"))]
+        )
+        real_imgs = real_imgs[valid_idxs]
+        real_imgs = np.array(
+            [cv2.resize(i, (sim_imgs.shape[2], sim_imgs.shape[1])) for i in real_imgs]
+        )
+        real_and_sim = np.array(
+            [cv2.hconcat([i, j]) for i, j in zip(real_imgs, sim_imgs)]
+        )
+
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        out = cv2.VideoWriter(
+            output_path, fourcc, 30, (real_and_sim.shape[2], real_and_sim.shape[1])
+        )
+
+        for frame in real_and_sim:
+            out.write(frame)
+        out.release()

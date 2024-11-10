@@ -130,11 +130,7 @@ if __name__ == "__main__":
         help="Site used for teleOp/target for IK",
     )
     parser.add_argument(
-        "-ip",
-        "--input_path",
-        type=str,
-        default="/home/sriram.sk/desktop/hoi4d_vid/_data_sriram_hoi4d_hoi4d_data_ZY20210800003_H3_C14_N42_S207_s05_T2_vid/",
-        help="Input HOI4D data for real2sim",
+        "-ip", "--input_path", type=str, help="Input data for real2sim", required=True
     )
     parser.add_argument(
         "-op",

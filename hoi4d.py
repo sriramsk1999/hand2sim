@@ -38,9 +38,15 @@ def check_hand_object_contact(segmasks):
 
 
 def load_hoi4d_trajectory(base_path):
-    """loads a test trajectory from a hardcoded path.
-    The minimum requirement is the hand pose in the
-    camera frame (cam2hand) and the camera pose in the world (world2cam).
+    """loads a test trajectory.
+    - validIdxs - mask of frames in which a hand is visible
+    - camWorld2hand - The trajectory of the hand wrt /world/ camera (first frame of video)
+    - hoiContact - Binary array indicating hand/object contact in every frame
+
+    This function uses the camera trajectory and hand pose in each frame
+    to compute the camWorld2hand trajectory. validIdxs is given in the
+    dataset and hoiContact is computed by checking if the hand segmask
+    overlaps with the object segmask.
     """
     cam_trajectory = o3d.io.read_pinhole_camera_trajectory(
         f"{base_path}/3Dseg/output.log"
@@ -51,10 +57,10 @@ def load_hoi4d_trajectory(base_path):
 
     cam2hand = []
     # in some frames, the hand might not be visible, filter these out
-    idxs = np.array(
+    validIdxs = np.array(
         sorted([int(i.split(".")[0]) for i in os.listdir(f"{base_path}/handpose")])
     )
-    for idx in idxs:
+    for idx in validIdxs:
         f = open(f"{base_path}/handpose/{idx}.pickle", "rb")
         data = pickle.load(f)
         pose = np.eye(4)
@@ -66,13 +72,15 @@ def load_hoi4d_trajectory(base_path):
         f.close()
     cam2hand = np.array(cam2hand)
 
-    segmasks = np.array(
-        [cv2.imread(i) for i in sorted(glob(f"{base_path}/2Dseg/shift_mask/*png"))]
-    )
+    seg_dir = f"{base_path}/2Dseg/shift_mask/"
+    if not os.path.exists(seg_dir):
+        seg_dir = f"{base_path}/2Dseg/mask/"
 
-    camWorld2hand = camWorld2cam[idxs] @ cam2hand
-    hoiContact = check_hand_object_contact(segmasks)[idxs]
-    return idxs, camWorld2hand, hoiContact
+    segmasks = np.array([cv2.imread(i) for i in sorted(glob(f"{seg_dir}/*png"))])
+
+    camWorld2hand = camWorld2cam[validIdxs] @ cam2hand
+    hoiContact = check_hand_object_contact(segmasks)[validIdxs]
+    return validIdxs, camWorld2hand, hoiContact
 
 
 def retarget_hand_trajectory(camWorld2hand, robotWorld2ee, handObjectContact):
@@ -94,12 +102,12 @@ def retarget_hand_trajectory(camWorld2hand, robotWorld2ee, handObjectContact):
     target_y = np.array([-0.25, 0.25])
     target_z = np.array([1, 1.3])
 
-    # SScale and shift the translation to fit into the robot workspace
+    # Scale and shift the translation to fit into the robot workspace
     for i, (min_target, max_target) in enumerate([target_x, target_y, target_z]):
-        v_min = np.min(robotWorld2hand[:, :3, i])
-        v_max = np.max(robotWorld2hand[:, :3, i])
-        robotWorld2hand[:, :3, i] = min_target + (
-            (robotWorld2hand[:, :3, i] - v_min)
+        v_min = np.min(robotWorld2hand[:, i, -1])
+        v_max = np.max(robotWorld2hand[:, i, -1])
+        robotWorld2hand[:, i, -1] = min_target + (
+            (robotWorld2hand[:, i, -1] - v_min)
             * (max_target - min_target)
             / (v_max - v_min)
         )

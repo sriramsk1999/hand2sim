@@ -11,7 +11,23 @@ robohive_init
 ## Usage
 
 ``` sh
-python real2sim.py --dataset "hoi4d" --path "/path/to/dataset"
+python real2sim.py --dataset "hoi4d" --path "/path/to/hoi4d/video/"
 ```
 
+## Pipeline (WIP)
+
+The goal is to be able to take in any video of a human performing an action, extract the hand trajectory, retarget it to a Franka arm, and replay it in RoboHive.
+
+The *current* target is to do so with videos from the something-something v2 dataset. To set up this entire pipeline, we require the following annotations:
+
+- **Camera Pose** - To compensate for camera motion when replaying the trajectory
+- **Hand Pose** - To transfer hand motion to the end effector
+- **Hand-Object Contact Flag** - To get open/close actions for the end effector.
+
+These annotations are acquired with the following off-the-shelf models:
+
+- **Camera Pose** - Monst3R
+- **Hand Pose** - HaMeR
+- **Depth** - Monst3R (HaMeR provides weak perspective hand positions, can be inconsistent over a video. Thus we can use a dedicated depth estimator and then only use hand orientation from HaMeR, not the hand position itself).
+- **Hand-Object Contact Flag** - To get open/close actions for the end effector.
 

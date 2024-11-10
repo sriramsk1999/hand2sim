@@ -7,12 +7,14 @@ from robohive.utils.inverse_kinematics import qpos_from_site_pose
 from robohive.utils.quat_math import quat2mat
 from tqdm import tqdm
 
-from hoi4d import get_hoi4d_trajectory
+from hoi4d import HOI4DDataset
+from something_something import SomethingSomethingDataset
 from utils import set_initial_ee_target, write_real_sim_video
 
 
 def main(
     env_name,
+    dataset_name,
     seed,
     goal_site,
     teleop_site,
@@ -21,6 +23,13 @@ def main(
 ):
     base_path = input_path
     os.makedirs(output_path, exist_ok=True)
+
+    if dataset_name == "hoi4d":
+        dataset = HOI4DDataset(base_path)
+    elif dataset_name == "something-something":
+        dataset = SomethingSomethingDataset(base_path)
+    else:
+        raise NotImplementedError
 
     # seed and load environments
     np.random.seed(seed)
@@ -40,7 +49,7 @@ def main(
     ee_pose = np.eye(4)
     ee_pose[:3, :3] = quat2mat(curr_quat)
     ee_pose[:3, 3] = curr_pos
-    trajectory, valid_idxs = get_hoi4d_trajectory(base_path, ee_pose)
+    trajectory, valid_idxs = dataset.get_trajectory(ee_pose)
     horizon = trajectory.shape[0]
     env.reset()
 
@@ -106,6 +115,7 @@ if __name__ == "__main__":
         "--dataset",
         type=str,
         default="hoi4d",
+        choices=["hoi4d", "something-something"],
         help="Dataset to load",
     )
     parser.add_argument(
@@ -143,6 +153,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     main(
         args.env_name,
+        args.dataset,
         args.seed,
         args.goal_site,
         args.teleop_site,

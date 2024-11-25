@@ -1,11 +1,10 @@
-import os
-import pickle
 from glob import glob
 
 import cv2
 import h5py
 import numpy as np
-from robohive.utils.quat_math import quat2mat, mat2quat, euler2mat
+from robohive.utils.quat_math import euler2mat, mat2quat, quat2mat
+from utils import read_video_from_path
 
 
 class SomethingSomethingDataset:
@@ -30,11 +29,16 @@ class SomethingSomethingDataset:
         - hoiContact - Binary array indicating hand/object contact in every frame
 
         This function uses the camera trajectory and hand pose in each frame
-        to compute the camWorld2hand trajectory. validIdxs is given in the
-        dataset and hoiContact is computed by checking if the hand segmask
-        overlaps with the object segmask.
+        to compute the camWorld2hand trajectory. Parameters are estimated
+        using various off-the-shelf models [Monst3r, hamer, ContactHands]
         """
         cam_trajectory = np.loadtxt(f"{self.base_path}/monst3r/pred_traj.txt")
+
+        vid_name = self.base_path.split("/")[-1]
+        orig_size = read_video_from_path(f"{self.base_path}/{vid_name}.webm").shape[
+            1:-1
+        ]
+        orig_size = np.array(orig_size)[::-1]
 
         cam_xyz = cam_trajectory[:, 1:4]
         cam_quat_wxyz = cam_trajectory[:, 4:]
@@ -52,13 +56,9 @@ class SomethingSomethingDataset:
             handRotations = np.asarray(hf["rotations"])
             wristKeypoint = np.asarray(hf["wrist_keypoints"])
 
-        depths = np.array(
-            [
-                np.load(f"{self.base_path}/monst3r/frame_{str(i).zfill(4)}.npy")
-                for i in range(63)
-            ]
-        )
-        orig_size = np.array([427, 240])  # TODO: hardcoded
+        fnames = sorted(glob(f"{self.base_path}/monst3r/frame_*.npy"))
+        depths = np.array([np.load(f) for f in fnames])
+
         keypoints = self.map_keypoint_to_resized_img(
             wristKeypoint, orig_size, depths[0].shape
         )
@@ -67,9 +67,8 @@ class SomethingSomethingDataset:
         validHamerMask = np.logical_and(mask1, mask2)
 
         validIdxs = validIdxs[validHamerMask]
-
-        keypoints = keypoints[validIdxs]
-        handRotations = handRotations[validIdxs]
+        keypoints = keypoints[validHamerMask]
+        handRotations = handRotations[validHamerMask]
 
         depths = depths[validIdxs]
         keypoint_depth = depths[
@@ -171,7 +170,7 @@ class SomethingSomethingDataset:
 
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         out = cv2.VideoWriter(
-            output_path, fourcc, 30, (real_and_sim.shape[2], real_and_sim.shape[1])
+            output_path, fourcc, 5, (real_and_sim.shape[2], real_and_sim.shape[1])
         )
 
         for frame in real_and_sim:

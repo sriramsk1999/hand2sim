@@ -1,6 +1,4 @@
-from glob import glob
-
-import cv2
+import imageio
 import numpy as np
 import open3d as o3d
 
@@ -54,3 +52,11 @@ def set_initial_ee_target(env, goal_sid, translation, rotation):
     env.sim.model.site_quat[goal_sid] = rotation
     env.sim.forward()
     return
+
+
+def read_video_from_path(path):
+    reader = imageio.get_reader(path)
+    frames = []
+    for i, im in enumerate(reader):
+        frames.append(np.array(im))
+    return np.stack(frames)

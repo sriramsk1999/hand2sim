@@ -37,7 +37,13 @@ class HOI4DDataset:
         cam_trajectory = o3d.io.read_pinhole_camera_trajectory(
             f"{self.base_path}/3Dseg/output.log"
         )
-        K = cam_trajectory.parameters[0].intrinsic.intrinsic_matrix
+        K = np.array(
+            [
+                [1.0602955e03, 0.0000000e00, 9.7152105e02],
+                [0.0000000e00, 1.0615068e03, 5.2326190e02],
+                [0.0000000e00, 0.0000000e00, 1.0000000e00],
+            ]
+        )
         cam2camWorld = np.array([i.extrinsic for i in cam_trajectory.parameters])
         camWorld2cam = np.linalg.inv(cam2camWorld)
 

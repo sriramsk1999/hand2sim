@@ -10,6 +10,7 @@ from utils import read_video_from_path
 class SomethingSomethingDataset:
     def __init__(self, base_path):
         self.base_path = base_path
+        self.monst3r_dim = 224
 
     def get_trajectory(self, ee_pose):
         """
@@ -63,7 +64,7 @@ class SomethingSomethingDataset:
             wristKeypoint, orig_size, depths[0].shape
         )
         mask1 = keypoints.min(1) > 0
-        mask2 = keypoints.max(1) < 224
+        mask2 = keypoints.max(1) < self.monst3r_dim
         validHamerMask = np.logical_and(mask1, mask2)
 
         validIdxs = validIdxs[validHamerMask]

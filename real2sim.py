@@ -7,8 +7,8 @@ from robohive.utils.inverse_kinematics import qpos_from_site_pose
 from robohive.utils.quat_math import quat2mat
 from tqdm import tqdm
 
-from hoi4d import HOI4DDataset
-from something_something import SomethingSomethingDataset
+from datasets.hoi4d import HOI4DDataset
+from datasets.something_something import SomethingSomethingDataset
 from utils import set_initial_ee_target
 
 
@@ -93,7 +93,11 @@ def main(
     sim_imgs = np.array(sim_imgs)
     output_name = base_path.replace("/", "_") + ".mp4"
     dataset.write_real_sim_video(
-        sim_imgs, base_path, valid_idxs, f"{output_path}/{output_name}"
+        sim_imgs,
+        dataset.real_img_path,
+        valid_idxs,
+        f"{output_path}/{output_name}",
+        dataset.viz_fps,
     )
     env.close()
 

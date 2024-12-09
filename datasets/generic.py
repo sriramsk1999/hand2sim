@@ -8,7 +8,7 @@ from utils import read_video_from_path
 from datasets.base_dataset import BaseDataset
 
 
-class SomethingSomethingDataset(BaseDataset):
+class GenericDataset(BaseDataset):
     def __init__(self, base_path):
         super().__init__(base_path)
         self.monst3r_dim = 224
@@ -16,7 +16,7 @@ class SomethingSomethingDataset(BaseDataset):
         self.viz_fps = 5
 
     def load_trajectory(self):
-        """loads a trajectory from something-something
+        """loads a trajectory from generic video
         - validIdxs - mask of frames in which a hand is visible
         - camWorld2hand - The trajectory of the hand wrt /world/ camera (first frame of video)
         - hoiContact - Binary array indicating hand/object contact in every frame

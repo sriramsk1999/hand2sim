@@ -18,7 +18,7 @@ python real2sim.py --dataset "hoi4d" --path "/path/to/hoi4d/video/"
 
 The goal is to be able to take in any video of a human performing an action, extract the hand trajectory, retarget it to a Franka arm, and replay it in RoboHive.
 
-The *current* goal is to do so with videos from the something-something v2 dataset. To set up this entire pipeline, we require the following annotations:
+To set up this entire pipeline, we require the following annotations:
 
 - **Camera Pose** - To compensate for camera motion when replaying the trajectory
 - **Hand Pose** - To transfer hand motion to the end effector

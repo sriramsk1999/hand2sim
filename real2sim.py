@@ -8,7 +8,7 @@ from robohive.utils.quat_math import quat2mat
 from tqdm import tqdm
 
 from datasets.hoi4d import HOI4DDataset
-from datasets.something_something import SomethingSomethingDataset
+from datasets.generic import GenericDataset
 from utils import set_initial_ee_target
 
 
@@ -26,8 +26,8 @@ def main(
 
     if dataset_name == "hoi4d":
         dataset = HOI4DDataset(base_path)
-    elif dataset_name == "something-something":
-        dataset = SomethingSomethingDataset(base_path)
+    elif dataset_name == "generic":
+        dataset = GenericDataset(base_path)
     else:
         raise NotImplementedError
 
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         "--dataset",
         type=str,
         default="hoi4d",
-        choices=["hoi4d", "something-something"],
+        choices=["hoi4d", "generic"],
         help="Dataset to load",
     )
     parser.add_argument(

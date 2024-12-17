@@ -3,6 +3,8 @@ from glob import glob
 import cv2
 import numpy as np
 from robohive.utils.quat_math import euler2mat, mat2quat
+from scipy.signal import savgol_filter
+from scipy.spatial.transform import Rotation
 
 
 class BaseDataset:
@@ -12,16 +14,67 @@ class BaseDataset:
     def get_trajectory(self, ee_pose):
         """
         Load the trajectory at `base_path`
-        TODO: Currently just handles one trajectory
         """
         valid_idxs, camWorld2hand, handObjectContact = self.load_trajectory()
         trajectory = self.retarget_hand_trajectory(
             camWorld2hand, ee_pose, handObjectContact
         )
-        return trajectory, valid_idxs
+        smooth_trajectory = self.smooth_trajectory(trajectory)
+        return smooth_trajectory, valid_idxs
 
     def load_trajectory(self):
         raise NotImplementedError("To be implemented in subclass")
+
+    def smooth_trajectory(self, trajectory, window=5, poly_order=3):
+        """
+        Smooth trajectory using Savitzky-Golay for positions/gripper
+        and Slerp for quaternions
+
+        Args:
+        - trajectory: numpy array of shape (N, 8)
+            - First 3: xyz positions
+            - Next 4: quaternion (w,x,y,z)
+            - Last: gripper position
+        - window: smoothing window size (must be odd)
+        - poly_order: polynomial order for fitting
+
+        Returns:
+        Smoothed trajectory
+        """
+        # Ensure window is odd
+        window = window if window % 2 == 1 else window + 1
+        half_window = window // 2
+
+        smoothed = np.zeros_like(trajectory)
+
+        # Smooth positions and gripper
+        for col in [0, 1, 2, 7]:
+            smoothed[:, col] = savgol_filter(
+                trajectory[:, col], window_length=window, polyorder=poly_order
+            )
+
+        # Smooth quaternions using Slerp
+        for i in range(len(trajectory)):
+            # Define window bounds
+            start = max(0, i - half_window)
+            end = min(len(trajectory), i + half_window + 1)
+
+            # Extract window quaternions
+            window_quats = trajectory[start:end, 3:7]
+
+            # Convert to rotation objects
+            rots = Rotation.from_quat(window_quats)
+
+            # Average rotations
+            avg_rot = rots.mean()
+            avg_quat = avg_rot.as_quat()
+            # prefer positive w
+            if avg_quat[0] < 0:
+                avg_quat *= -1
+
+            # Convert back to quaternion
+            smoothed[i, 3:7] = avg_quat
+        return smoothed
 
     def retarget_hand_trajectory(self, camWorld2hand, robotWorld2ee, handObjectContact):
         """
@@ -52,7 +105,7 @@ class BaseDataset:
                 / (v_max - v_min)
             )
 
-        robot_trajectory_quat = mat2quat(robotWorld2hand[:, :3, :3])
+        robot_trajectory_quat = mat2quat(robotWorld2hand[:, :3, :3])  # w,x,y,z
         robot_trajectory_pos = robotWorld2hand[:, :3, 3]
 
         robot_gripper_state = handObjectContact[:, None]

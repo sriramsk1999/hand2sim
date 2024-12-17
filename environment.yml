@@ -5,42 +5,54 @@ channels:
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_gnu
-  - ca-certificates=2024.9.24=h06a4308_0
+  - binutils_impl_linux-64=2.40=h5293946_0
+  - bzip2=1.0.8=h5eee18b_6
+  - ca-certificates=2024.12.14=hbcca054_0
+  - gcc=12.4.0=h236703b_1
+  - gcc_impl_linux-64=12.4.0=hb2e57f8_1
+  - gxx=12.4.0=h236703b_1
+  - gxx_impl_linux-64=12.4.0=h613a52c_1
+  - kernel-headers_linux-64=3.10.0=he073ed8_18
   - ld_impl_linux-64=2.40=h12ee557_0
   - libffi=3.4.4=h6a678d5_1
   - libgcc=14.2.0=h77fa898_1
+  - libgcc-devel_linux-64=12.4.0=ha4f9413_101
   - libgcc-ng=14.2.0=h69a702a_1
   - libgomp=14.2.0=h77fa898_1
+  - libsanitizer=12.4.0=h46f95d5_1
   - libstdcxx=14.2.0=hc0a3c3a_1
-  - libstdcxx-ng=14.2.0=h4852527_1
+  - libstdcxx-devel_linux-64=12.4.0=ha4f9413_101
+  - libstdcxx-ng=11.2.0=h1234567_1
+  - libuuid=1.41.5=h5eee18b_0
   - ncurses=6.4=h6a678d5_0
-  - openssl=3.3.2=hb9d3cd8_0
-  - pip=24.2=py39h06a4308_0
-  - python=3.9.20=he870216_1
+  - openssl=3.4.0=hb9d3cd8_0
+  - pip=24.2=py310h06a4308_0
+  - python=3.10.16=he870216_1
   - readline=8.2=h5eee18b_0
-  - setuptools=75.1.0=py39h06a4308_0
+  - setuptools=75.1.0=py310h06a4308_0
   - sqlite=3.45.3=h5eee18b_0
+  - sysroot_linux-64=2.17=h4a8ded7_18
   - tk=8.6.14=h39e8969_0
-  - wheel=0.44.0=py39h06a4308_0
+  - wheel=0.44.0=py310h06a4308_0
   - xz=5.4.6=h5eee18b_1
   - zlib=1.2.13=h5eee18b_1
   - pip:
       - absl-py==2.1.0
       - addict==2.4.0
-      - astroid==3.3.5
-      - asttokens==2.4.1
-      - attrs==24.2.0
+      - astroid==3.3.6
+      - asttokens==3.0.0
+      - attrs==24.3.0
       - black==24.10.0
-      - blinker==1.8.2
-      - certifi==2024.8.30
+      - blinker==1.9.0
+      - certifi==2024.12.14
       - charset-normalizer==3.4.0
       - click==8.1.7
       - cloudpickle==3.1.0
       - comm==0.2.2
       - configargparse==1.7
-      - contourpy==1.3.0
+      - contourpy==1.3.1
       - cycler==0.12.1
-      - dash==2.18.1
+      - dash==2.18.2
       - dash-core-components==2.0.0
       - dash-html-components==2.0.0
       - dash-table==5.0.0
@@ -49,30 +61,32 @@ dependencies:
       - dm-control==1.0.16
       - dm-env==1.6
       - dm-tree==0.1.8
-      - etils==1.5.2
+      - etils==1.11.0
       - exceptiongroup==1.2.2
       - executing==2.1.0
       - farama-notifications==0.0.4
-      - fastjsonschema==2.20.0
+      - fastjsonschema==2.21.1
       - ffmpeg==1.4
       - filelock==3.16.1
       - flask==3.0.3
       - flatten-dict==0.4.2
-      - fonttools==4.54.1
+      - fonttools==4.55.3
       - fsspec==2024.10.0
       - gitdb==4.0.11
       - gitpython==3.1.43
-      - glfw==2.7.0
+      - glfw==2.8.0
       - gymnasium==0.29.1
       - h5py==3.7.0
       - idna==3.10
+      - imageio==2.36.1
+      - imageio-ffmpeg==0.5.1
       - importlib-metadata==8.5.0
       - importlib-resources==6.4.5
-      - ipython==8.18.1
+      - ipython==8.30.0
       - ipywidgets==8.1.5
       - isort==5.13.2
       - itsdangerous==2.2.0
-      - jedi==0.19.1
+      - jedi==0.19.2
       - jinja2==3.1.4
       - joblib==1.4.2
       - jsonschema==4.23.0
@@ -83,7 +97,7 @@ dependencies:
       - labmaze==1.0.6
       - lxml==5.3.0
       - markupsafe==3.0.2
-      - matplotlib==3.9.2
+      - matplotlib==3.10.0
       - matplotlib-inline==0.1.7
       - mccabe==0.7.0
       - mpmath==1.3.0
@@ -91,7 +105,7 @@ dependencies:
       - mypy-extensions==1.0.0
       - nbformat==5.10.4
       - nest-asyncio==1.6.0
-      - networkx==3.2.1
+      - networkx==3.4.2
       - numpy==1.26.0
       - nvidia-cublas-cu12==12.4.5.8
       - nvidia-cuda-cupti-cu12==12.4.127
@@ -107,7 +121,7 @@ dependencies:
       - nvidia-nvtx-cu12==12.4.127
       - open3d==0.18.0
       - opencv-python==4.10.0.84
-      - packaging==24.1
+      - packaging==24.2
       - pandas==2.2.3
       - parso==0.8.4
       - pathspec==0.12.1
@@ -117,11 +131,12 @@ dependencies:
       - platformdirs==4.3.6
       - plotly==5.24.1
       - prompt-toolkit==3.0.48
-      - protobuf==5.28.3
+      - protobuf==5.29.1
+      - psutil==6.1.0
       - ptyprocess==0.7.0
       - pure-eval==0.2.3
       - pygments==2.18.0
-      - pylint==3.3.1
+      - pylint==3.3.2
       - pyopengl==3.1.7
       - pyparsing==3.2.0
       - pyquaternion==0.9.9
@@ -132,10 +147,10 @@ dependencies:
       - requests==2.32.3
       - retrying==1.3.4
       - robohive==0.7.0
-      - rpds-py==0.20.1
-      - scikit-learn==1.5.2
-      - scipy==1.13.1
-      - six==1.16.0
+      - rpds-py==0.22.3
+      - scikit-learn==1.6.0
+      - scipy==1.14.1
+      - six==1.17.0
       - sk-video==1.1.10
       - smmap==5.0.1
       - stack-data==0.6.3
@@ -143,10 +158,10 @@ dependencies:
       - tenacity==9.0.0
       - termcolor==2.5.0
       - threadpoolctl==3.5.0
-      - tomli==2.0.2
+      - tomli==2.2.1
       - tomlkit==0.13.2
       - torch==2.5.1
-      - tqdm==4.66.6
+      - tqdm==4.67.1
       - traitlets==5.14.3
       - triton==3.1.0
       - typing-extensions==4.12.2
@@ -155,4 +170,4 @@ dependencies:
       - wcwidth==0.2.13
       - werkzeug==3.0.6
       - widgetsnbextension==4.0.13
-      - zipp==3.20.2
+      - zipp==3.21.0

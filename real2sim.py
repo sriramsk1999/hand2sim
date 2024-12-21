@@ -1,15 +1,11 @@
 import argparse
 import os
 
-import gymnasium as gym
 import numpy as np
-from robohive.utils.inverse_kinematics import qpos_from_site_pose
-from robohive.utils.quat_math import quat2mat
 from tqdm import tqdm
 
-from datasets.hoi4d import HOI4DDataset
 from datasets.generic import GenericDataset
-from utils import set_initial_ee_target
+from datasets.hoi4d import HOI4DDataset
 
 
 def main(
@@ -31,72 +27,25 @@ def main(
         raise NotImplementedError
 
     if env_name == "robohive":
-        goal_site = "ee_target"  # Site that updates as goal using inputs
-        teleop_site = "end_effector"  # Site used for teleOp/target for IK
-        # seed and load environments
-        env = gym.make("rpFrankaRobotiqData-v0")
-        env.seed(seed)
+        from environments.robohive_env import RoboHiveRetargetEnv
 
-        env.env.mujoco_render_frames = False
-        goal_sid = env.sim.model.site_name2id(goal_site)
-
-        translation = [0.4, 0, 1.1]
-        rotation = [0, 0, 0, 1]
-        set_initial_ee_target(env, goal_sid, translation, rotation)
-
-        env.reset()
-        curr_pos = env.sim.model.site_pos[goal_sid]
-        curr_quat = env.sim.model.site_quat[goal_sid]
-        ee_pose = np.eye(4)
-        ee_pose[:3, :3] = quat2mat(curr_quat)
-        ee_pose[:3, 3] = curr_pos
-        trajectory, valid_idxs = dataset.get_trajectory(ee_pose)
-        horizon = trajectory.shape[0]
-        env.reset()
-
-        # recover init state
-        _ = env.forward()
-        act = np.zeros(env.action_space.shape)
-        gripper_state = 0
-        sim_imgs = []
-
-        for i_step in tqdm(range(horizon)):
-            curr_pos = env.sim.model.site_pos[goal_sid]
-            curr_pos[:] = trajectory[i_step][:3]
-            # update rot
-            curr_quat = env.sim.model.site_quat[goal_sid]
-            curr_quat[:] = trajectory[i_step][3:7]
-            # update gripper
-            gripper_state = trajectory[i_step][7]
-
-            # get action using IK
-            ik_result = qpos_from_site_pose(
-                physics=env.sim,
-                site_name=teleop_site,
-                target_pos=curr_pos,
-                target_quat=curr_quat,
-                inplace=False,
-                regularization_strength=1.0,
-            )
-            if ik_result.success == False:
-                print(
-                    f"IK(t:{i_step}):: Status:{ik_result.success}, total steps:{ik_result.steps}, err_norm:{ik_result.err_norm}"
-                )
-            else:
-                act[:7] = ik_result.qpos[:7]
-                act[7:] = gripper_state
-                if env.normalize_act:
-                    act = env.env.robot.normalize_actions(act)
-
-            _ = env.step(act)
-            sim_imgs.append(env.get_exteroception()["rgb:left_cam:240x424:2d"])
-        env.close()
+        environment = RoboHiveRetargetEnv(seed)
     elif env_name == "isaacsim":
-        pass
-    else:
-        raise NotImplementedError
+        from environments.isaacsim_env import IsaacSimRetargetEnv
 
+        environment = IsaacSimRetargetEnv(seed)
+
+    trajectory, valid_idxs = dataset.get_trajectory(environment.init_ee_pose)
+    horizon = trajectory.shape[0]
+
+    sim_imgs = []
+    for i_step in tqdm(range(horizon)):
+        image = environment.step_and_render(i_step, trajectory[i_step])
+        sim_imgs.append(image)
+
+    environment.close()
     sim_imgs = np.array(sim_imgs)
+
     output_name = base_path.replace("/", "_") + ".mp4"
     dataset.write_real_sim_video(
         sim_imgs,

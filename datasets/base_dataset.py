@@ -11,13 +11,13 @@ class BaseDataset:
     def __init__(self, base_path):
         self.base_path = base_path
 
-    def get_trajectory(self, ee_pose):
+    def get_trajectory(self, ee_pose, ee_range):
         """
         Load the trajectory at `base_path`
         """
         valid_idxs, camWorld2hand, handObjectContact = self.load_trajectory()
         trajectory = self.retarget_hand_trajectory(
-            camWorld2hand, ee_pose, handObjectContact
+            camWorld2hand, ee_pose, handObjectContact, ee_range
         )
         smooth_trajectory = self.smooth_trajectory(trajectory)
         return smooth_trajectory, valid_idxs
@@ -76,7 +76,9 @@ class BaseDataset:
             smoothed[i, 3:7] = avg_quat
         return smoothed
 
-    def retarget_hand_trajectory(self, camWorld2hand, robotWorld2ee, handObjectContact):
+    def retarget_hand_trajectory(
+        self, camWorld2hand, robotWorld2ee, handObjectContact, ee_range
+    ):
         """
         Align hand coordinates with end effector.
         retarget the 4x4 extrinsics to quaternion/translation/gripper state
@@ -89,11 +91,11 @@ class BaseDataset:
         align_rotation[:3, :3] = euler2mat((0, np.pi, 0))
         robotWorld2hand = robotWorld2hand @ align_rotation
 
-        # Target ranges based on the reachable space of the robot in a RoboHive env
+        # Target ranges based on the reachable space of the robot
         # Manually estimated with some teleop
-        target_x = np.array([0.2, 0.5])
-        target_y = np.array([-0.25, 0.25])
-        target_z = np.array([1, 1.3])
+        target_x = ee_range[:2]
+        target_y = ee_range[2:4]
+        target_z = ee_range[4:]
 
         # Scale and shift the translation to fit into the robot workspace
         for i, (min_target, max_target) in enumerate([target_x, target_y, target_z]):

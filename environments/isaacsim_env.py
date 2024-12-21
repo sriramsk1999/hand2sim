@@ -17,6 +17,8 @@ class IsaacSimRetargetEnv:
         franka = world.scene.add(Franka(prim_path="/World/franka", name="franka"))
         franka_articulation = Articulation(franka.prim_path)
         franka_IK = KinematicsSolver(franka_articulation)
+        franka_IK_solver = franka_IK.get_kinematics_solver()
+        franka_IK_solver.bfgs_max_iterations = 200
 
         camera = Camera(
             prim_path="/World/camera",
@@ -43,47 +45,9 @@ class IsaacSimRetargetEnv:
         self.init_ee_pose[:3, 3] = ee_pos
         self.init_ee_pose[:3, :3] = ee_rot
 
-        import random
-
-        def generate_random_trajectory(trajectory_len):
-            """Generate a random reachable position for the end effector"""
-            # Define workspace limits for the end effector
-            x_range = (0.3, 0.7)  # Forward/backward
-            y_range = (-0.4, 0.4)  # Left/right
-            z_range = (0.2, 0.8)  # Up/down
-
-            pos1 = np.array(
-                [
-                    random.uniform(*x_range),
-                    random.uniform(*y_range),
-                    random.uniform(*z_range),
-                ]
-            )
-
-            pos2 = np.array(
-                [
-                    random.uniform(*x_range),
-                    random.uniform(*y_range),
-                    random.uniform(*z_range),
-                ]
-            )
-
-            # Keep the end effector oriented downward
-            # Rotation in quaternion (w, x, y, z)
-            orientation = np.array([1.0, 0.0, 0.0, 0.0])
-            gripper = np.array([0, 0])
-
-            position1 = np.concatenate([pos1, orientation, gripper])
-            position2 = np.concatenate([pos2, orientation, gripper])
-
-            trajectory = np.linspace(position1, position2, trajectory_len)
-            return trajectory
-
-        self.trajectory = generate_random_trajectory(240)
+        self.ee_range = np.array([0.2, 0.5, -0.25, 0.25, 0.2, 0.5])
 
     def step_and_render(self, step_num, next_pose):
-        next_pose = self.trajectory[step_num]
-
         action, success = self.franka_IK.compute_inverse_kinematics(
             next_pose[:3], next_pose[3:7]
         )

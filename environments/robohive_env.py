@@ -36,6 +36,8 @@ class RoboHiveRetargetEnv:
         self.teleop_site = teleop_site
         self.action_shape = env.action_space.shape
 
+        self.ee_range = np.array([0.2, 0.5, -0.25, 0.25, 1, 1.3])
+
     def step_and_render(self, step_num, next_pose):
         curr_pos = self.env.sim.model.site_pos[self.goal_sid]
         curr_pos[:] = next_pose[:3]

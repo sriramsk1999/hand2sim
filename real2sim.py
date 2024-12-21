@@ -37,7 +37,9 @@ def main(
     elif env_name == "isaacsim":
         environment = IsaacSimRetargetEnv(seed, simulation_app)
 
-    trajectory, valid_idxs = dataset.get_trajectory(environment.init_ee_pose)
+    trajectory, valid_idxs = dataset.get_trajectory(
+        environment.init_ee_pose, environment.ee_range
+    )
     horizon = trajectory.shape[0]
 
     sim_imgs = []

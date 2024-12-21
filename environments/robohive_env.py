@@ -60,12 +60,11 @@ class RoboHiveRetargetEnv:
             print(
                 f"IK(t:{step_num}):: Status:{ik_result.success}, total steps:{ik_result.steps}, err_norm:{ik_result.err_norm}"
             )
-        else:
-            act[:7] = ik_result.qpos[:7]
-            act[7:] = gripper_state
-            if self.env.normalize_act:
-                act = self.env.env.robot.normalize_actions(act)
 
+        act[:7] = ik_result.qpos[:7]
+        act[7:] = gripper_state
+        if self.env.normalize_act:
+            act = self.env.env.robot.normalize_actions(act)
         _ = self.env.step(act)
         return self.env.get_exteroception()["rgb:left_cam:240x424:2d"]
 

@@ -1,3 +1,7 @@
+from isaacsim import SimulationApp
+
+simulation_app = SimulationApp({"headless": True})
+
 import argparse
 import os
 
@@ -6,6 +10,8 @@ from tqdm import tqdm
 
 from datasets.generic import GenericDataset
 from datasets.hoi4d import HOI4DDataset
+from environments.isaacsim_env import IsaacSimRetargetEnv
+from environments.robohive_env import RoboHiveRetargetEnv
 
 
 def main(
@@ -27,13 +33,9 @@ def main(
         raise NotImplementedError
 
     if env_name == "robohive":
-        from environments.robohive_env import RoboHiveRetargetEnv
-
         environment = RoboHiveRetargetEnv(seed)
     elif env_name == "isaacsim":
-        from environments.isaacsim_env import IsaacSimRetargetEnv
-
-        environment = IsaacSimRetargetEnv(seed)
+        environment = IsaacSimRetargetEnv(seed, simulation_app)
 
     trajectory, valid_idxs = dataset.get_trajectory(environment.init_ee_pose)
     horizon = trajectory.shape[0]
@@ -43,7 +45,6 @@ def main(
         image = environment.step_and_render(i_step, trajectory[i_step])
         sim_imgs.append(image)
 
-    environment.close()
     sim_imgs = np.array(sim_imgs)
 
     output_name = base_path.replace("/", "_") + ".mp4"
@@ -51,9 +52,10 @@ def main(
         sim_imgs,
         dataset.real_img_path,
         valid_idxs,
-        f"{output_path}/{output_name}",
+        f"{output_path}/{env_name}-{output_name}",
         dataset.viz_fps,
     )
+    environment.close()
 
 
 if __name__ == "__main__":

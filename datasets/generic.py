@@ -10,13 +10,14 @@ from datasets.base_dataset import BaseDataset
 
 class GenericDataset(BaseDataset):
     def __init__(self, base_path):
+        # TODO: This dataset makes a lot of assumptions on the paths. Refactor/clean it up
         super().__init__(base_path)
         self.monst3r_dim = 224
         self.real_img_path = f"{base_path}/monst3r/frame*png"
         self.viz_fps = 5
 
     def load_trajectory(self):
-        """loads a trajectory from generic video
+        """loads a trajectory from a generic video
         - validIdxs - mask of frames in which a hand is visible
         - camWorld2hand - The trajectory of the hand wrt /world/ camera (first frame of video)
         - hoiContact - Binary array indicating hand/object contact in every frame

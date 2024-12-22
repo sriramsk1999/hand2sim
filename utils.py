@@ -46,8 +46,10 @@ def vis_trajectory(traj):
 
 
 def set_initial_ee_target(env, goal_sid, translation, rotation):
+    """
+    Place ee target in a more suitable location / orientation
+    """
     env.sim.model.site_rgba[goal_sid][3] = 0.2  # make visible
-    # place ee target in a more suitable location / orientation
     env.sim.model.site_pos[goal_sid] = translation
     env.sim.model.site_quat[goal_sid] = rotation
     env.sim.forward()

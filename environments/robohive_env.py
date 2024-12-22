@@ -16,6 +16,7 @@ class RoboHiveRetargetEnv:
         env.env.mujoco_render_frames = False
         goal_sid = env.sim.model.site_name2id(goal_site)
 
+        # Place end effector in a more suitable location / orientation
         translation = [0.4, 0, 1.1]
         rotation = [0, 0, 0, 1]
         set_initial_ee_target(env, goal_sid, translation, rotation)
@@ -36,16 +37,21 @@ class RoboHiveRetargetEnv:
         self.teleop_site = teleop_site
         self.action_shape = env.action_space.shape
 
+        # min-max range of x/y/z values signifying the valid range of end effector positions
+        # Manually estimated through some teleop ...
         self.ee_range = np.array([0.2, 0.5, -0.25, 0.25, 1, 1.3])
 
     def align_transform(self, robotWorld2hand):
-        # Fix the trajectory to replay in robohive
+        """Rotate about y to replay correctly in robohive"""
         align_rotation = np.eye(4)
         align_rotation[:3, :3] = euler2mat((0, np.pi, 0))
         robotWorld2hand = robotWorld2hand @ align_rotation
         return robotWorld2hand
 
     def step_and_render(self, step_num, next_pose):
+        """
+        Step the simulation with the next pose and return the rendered image.
+        """
         curr_pos = self.env.sim.model.site_pos[self.goal_sid]
         curr_pos[:] = next_pose[:3]
         # update rot

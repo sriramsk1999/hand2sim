@@ -14,6 +14,11 @@ class BaseDataset:
     def get_trajectory(self, ee_pose, ee_range, align_transform):
         """
         Load the trajectory at `base_path`
+
+        Use environment-specific parameters
+        - ee_pose -> The current end effector pose to map the initial hand pose to
+        - ee_range -> min-max range of x/y/z values to normalize the retargeted trajectory
+        - align_transform -> handling coord system changes for the retargeted trajectory
         """
         valid_idxs, camWorld2hand, handObjectContact = self.load_trajectory()
         trajectory = self.retarget_hand_trajectory(

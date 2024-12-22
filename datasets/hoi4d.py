@@ -29,6 +29,7 @@ class HOI4DDataset(BaseDataset):
         cam_trajectory = o3d.io.read_pinhole_camera_trajectory(
             f"{self.base_path}/3Dseg/output.log"
         )
+        # One of the 4 cameras from the dataset, others are pretty similar
         K = np.array(
             [
                 [1.0602955e03, 0.0000000e00, 9.7152105e02],

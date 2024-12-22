@@ -25,6 +25,7 @@ def main(
     base_path = input_path
     os.makedirs(output_path, exist_ok=True)
 
+    # Create the dataset we're using as a source
     if dataset_name == "hoi4d":
         dataset = HOI4DDataset(base_path)
     elif dataset_name == "generic":
@@ -32,16 +33,21 @@ def main(
     else:
         raise NotImplementedError
 
+    # And the environment we're using as a target
     if env_name == "robohive":
         environment = RoboHiveRetargetEnv(seed)
     elif env_name == "isaacsim":
         environment = IsaacSimRetargetEnv(seed, simulation_app)
+    else:
+        raise NotImplementedError
 
+    # Retarget the trajectory for the specified environment
     trajectory, valid_idxs = dataset.get_trajectory(
         environment.init_ee_pose, environment.ee_range, environment.align_transform
     )
     horizon = trajectory.shape[0]
 
+    # Render images for visualization
     sim_imgs = []
     for i_step in tqdm(range(horizon)):
         image = environment.step_and_render(i_step, trajectory[i_step])
@@ -69,7 +75,7 @@ if __name__ == "__main__":
         "-e",
         "--env_name",
         type=str,
-        default="robohive",
+        default="isaacsim",
         choices=["isaacsim", "robohive"],
         help="Environment to load",
     )

@@ -3,6 +3,7 @@ from omni.isaac.core import World
 from omni.isaac.core.articulations import Articulation
 from omni.isaac.franka import Franka, KinematicsSolver
 from omni.isaac.sensor import Camera
+from robohive.utils.quat_math import mat2quat
 
 
 class IsaacSimRetargetEnv:
@@ -45,17 +46,23 @@ class IsaacSimRetargetEnv:
         self.init_ee_pose[:3, 3] = ee_pos
         self.init_ee_pose[:3, :3] = ee_rot
 
-        self.ee_range = np.array([0.2, 0.5, -0.25, 0.25, 0.2, 0.5])
+        # min-max range of x/y/z values signifying the valid range of end effector positions
+        self.ee_range = np.array([0.3, 0.6, -0.25, 0.25, 0.3, 0.6])
 
     def align_transform(self, robotWorld2hand):
-        # Flip signs of y/z translation
+        # Flip signs of y/z translation. Not entirely sure why this was needed.
         robotWorld2hand[:, 1, -1] *= -1
         robotWorld2hand[:, 2, -1] *= -1
         return robotWorld2hand
 
     def step_and_render(self, step_num, next_pose):
+        # Keep the tolerance relatively high to avoid jerky movements
+        # TODO: Find a better way to enforce smoothness for the solver
         action, success = self.franka_IK.compute_inverse_kinematics(
-            next_pose[:3], next_pose[3:7]
+            next_pose[:3],
+            next_pose[3:7],
+            position_tolerance=1e-2,
+            orientation_tolerance=5e-2,
         )
         if success:
             self.franka.apply_action(action)
@@ -66,7 +73,7 @@ class IsaacSimRetargetEnv:
         self.world.step(render=True)
 
         rgb_data = self.camera.get_rgb()
-        if rgb_data.shape[0] == 0:
+        if rgb_data.shape[0] == 0:  # The first 2-3 images are an empty array
             rgb_data = np.zeros((self.resolution[1], self.resolution[0], 3))
         return rgb_data.astype(np.uint8)
 

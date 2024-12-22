@@ -2,7 +2,7 @@ from glob import glob
 
 import cv2
 import numpy as np
-from robohive.utils.quat_math import euler2mat, mat2quat
+from robohive.utils.quat_math import mat2quat
 from scipy.signal import savgol_filter
 from scipy.spatial.transform import Rotation
 
@@ -11,13 +11,13 @@ class BaseDataset:
     def __init__(self, base_path):
         self.base_path = base_path
 
-    def get_trajectory(self, ee_pose, ee_range):
+    def get_trajectory(self, ee_pose, ee_range, align_transform):
         """
         Load the trajectory at `base_path`
         """
         valid_idxs, camWorld2hand, handObjectContact = self.load_trajectory()
         trajectory = self.retarget_hand_trajectory(
-            camWorld2hand, ee_pose, handObjectContact, ee_range
+            camWorld2hand, ee_pose, handObjectContact, ee_range, align_transform
         )
         smooth_trajectory = self.smooth_trajectory(trajectory)
         return smooth_trajectory, valid_idxs
@@ -77,7 +77,7 @@ class BaseDataset:
         return smoothed
 
     def retarget_hand_trajectory(
-        self, camWorld2hand, robotWorld2ee, handObjectContact, ee_range
+        self, camWorld2hand, robotWorld2ee, handObjectContact, ee_range, align_transform
     ):
         """
         Align hand coordinates with end effector.
@@ -85,11 +85,7 @@ class BaseDataset:
         """
         robotWorld2camWorld = robotWorld2ee @ np.linalg.inv(camWorld2hand[0])
         robotWorld2hand = robotWorld2camWorld @ camWorld2hand
-
-        # An arbitrary rotation to align the trajectory correctly with robot
-        align_rotation = np.eye(4)
-        align_rotation[:3, :3] = euler2mat((0, np.pi, 0))
-        robotWorld2hand = robotWorld2hand @ align_rotation
+        robotWorld2hand = align_transform(robotWorld2hand)
 
         # Target ranges based on the reachable space of the robot
         # Manually estimated with some teleop

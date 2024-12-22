@@ -1,7 +1,7 @@
 import gymnasium as gym
 import numpy as np
 from robohive.utils.inverse_kinematics import qpos_from_site_pose
-from robohive.utils.quat_math import quat2mat
+from robohive.utils.quat_math import quat2mat, euler2mat
 from utils import set_initial_ee_target
 
 
@@ -38,6 +38,13 @@ class RoboHiveRetargetEnv:
 
         self.ee_range = np.array([0.2, 0.5, -0.25, 0.25, 1, 1.3])
 
+    def align_transform(self, robotWorld2hand):
+        # Fix the trajectory to replay in robohive
+        align_rotation = np.eye(4)
+        align_rotation[:3, :3] = euler2mat((0, np.pi, 0))
+        robotWorld2hand = robotWorld2hand @ align_rotation
+        return robotWorld2hand
+
     def step_and_render(self, step_num, next_pose):
         curr_pos = self.env.sim.model.site_pos[self.goal_sid]
         curr_pos[:] = next_pose[:3]
@@ -58,16 +65,17 @@ class RoboHiveRetargetEnv:
         )
 
         act = np.zeros(self.action_shape)
-        if ik_result.success == False:
+        if ik_result.success:
+            act[:7] = ik_result.qpos[:7]
+            act[7:] = gripper_state
+            if self.env.normalize_act:
+                act = self.env.env.robot.normalize_actions(act)
+            _ = self.env.step(act)
+        else:
             print(
                 f"IK(t:{step_num}):: Status:{ik_result.success}, total steps:{ik_result.steps}, err_norm:{ik_result.err_norm}"
             )
 
-        act[:7] = ik_result.qpos[:7]
-        act[7:] = gripper_state
-        if self.env.normalize_act:
-            act = self.env.env.robot.normalize_actions(act)
-        _ = self.env.step(act)
         return self.env.get_exteroception()["rgb:left_cam:240x424:2d"]
 
     def close(self):

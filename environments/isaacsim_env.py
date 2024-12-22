@@ -47,14 +47,20 @@ class IsaacSimRetargetEnv:
 
         self.ee_range = np.array([0.2, 0.5, -0.25, 0.25, 0.2, 0.5])
 
+    def align_transform(self, robotWorld2hand):
+        # Flip signs of y/z translation
+        robotWorld2hand[:, 1, -1] *= -1
+        robotWorld2hand[:, 2, -1] *= -1
+        return robotWorld2hand
+
     def step_and_render(self, step_num, next_pose):
         action, success = self.franka_IK.compute_inverse_kinematics(
             next_pose[:3], next_pose[3:7]
         )
-        if success == False:
+        if success:
+            self.franka.apply_action(action)
+        else:
             print(f"IK(t:{step_num}):: Status:{success}")
-
-        self.franka.apply_action(action)
 
         # Step simulation
         self.world.step(render=True)

@@ -1,6 +1,7 @@
 import numpy as np
 from omni.isaac.core import World
 from omni.isaac.core.articulations import Articulation
+from omni.isaac.core.utils.types import ArticulationAction
 from omni.isaac.franka import Franka, KinematicsSolver
 from omni.isaac.sensor import Camera
 from robohive.utils.quat_math import mat2quat
@@ -37,7 +38,9 @@ class IsaacSimRetargetEnv:
         camera.initialize()
 
         self.franka = franka
+        self.gripper = franka.gripper
         self.franka_IK = franka_IK
+        self.gripper_action = ArticulationAction()
         self.camera = camera
         self.world = world
         self.simulation_app = simulation_app
@@ -66,6 +69,14 @@ class IsaacSimRetargetEnv:
         )
         if success:
             self.franka.apply_action(action)
+
+            # Valid values in [0,0.05] where 0.05 means open.
+            # Incoming labels are in {0, 1} where 1 is closed.
+            # Repeat for left/right finger
+            self.gripper_action.joint_positions = 0.05 - (
+                np.array([next_pose[7], next_pose[7]]) / 20
+            )
+            self.gripper.apply_action(self.gripper_action)
         else:
             print(f"IK(t:{step_num}):: Status:{success}")
 

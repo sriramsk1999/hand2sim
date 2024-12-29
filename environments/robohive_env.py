@@ -6,7 +6,12 @@ from utils import set_initial_ee_target
 
 
 class RoboHiveRetargetEnv:
-    def __init__(self, seed):
+    def __init__(self, seed, embodiment):
+        if embodiment not in ["pjaw"]:
+            raise NotImplementedError(
+                "Only parallel jaw has been implemented for RoboHive."
+            )
+
         goal_site = "ee_target"  # Site that updates as goal using inputs
         teleop_site = "end_effector"  # Site used for teleOp/target for IK
         # seed and load environments
@@ -48,17 +53,17 @@ class RoboHiveRetargetEnv:
         robotWorld2hand = robotWorld2hand @ align_rotation
         return robotWorld2hand
 
-    def step_and_render(self, step_num, next_pose):
+    def step_and_render(self, step_num, ee_pose, hand_action):
         """
         Step the simulation with the next pose and return the rendered image.
         """
         curr_pos = self.env.sim.model.site_pos[self.goal_sid]
-        curr_pos[:] = next_pose[:3]
+        curr_pos[:] = ee_pose[:3]
         # update rot
         curr_quat = self.env.sim.model.site_quat[self.goal_sid]
-        curr_quat[:] = next_pose[3:7]
+        curr_quat[:] = ee_pose[3:7]
         # update gripper
-        gripper_state = next_pose[7]
+        gripper_state = hand_action
 
         # get action using IK
         ik_result = qpos_from_site_pose(

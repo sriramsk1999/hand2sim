@@ -10,7 +10,10 @@ from datasets.base_dataset import BaseDataset
 
 class GenericDataset(BaseDataset):
     def __init__(self, base_path):
-        # TODO: This dataset makes a lot of assumptions on the paths. Refactor/clean it up
+        raise NotImplementedError(
+            "This dataset makes a lot of assumptions on the paths. Refactor/clean it up.\
+            Additionally, doesn't pass hand pose."
+        )
         super().__init__(base_path)
         self.monst3r_dim = 224
         self.real_img_path = f"{base_path}/monst3r/frame*png"

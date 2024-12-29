@@ -11,7 +11,7 @@ class BaseDataset:
     def __init__(self, base_path):
         self.base_path = base_path
 
-    def get_trajectory(self, ee_pose, ee_range, align_transform):
+    def get_trajectory(self, ee_pose, ee_range, align_transform, embodiment):
         """
         Load the trajectory at `base_path`
 
@@ -19,13 +19,14 @@ class BaseDataset:
         - ee_pose -> The current end effector pose to map the initial hand pose to
         - ee_range -> min-max range of x/y/z values to normalize the retargeted trajectory
         - align_transform -> handling coord system changes for the retargeted trajectory
+        - embodiment -> The desired target embodiment for retarget to.
         """
         valid_idxs, camWorld2hand, handObjectContact = self.load_trajectory()
-        trajectory = self.retarget_hand_trajectory(
-            camWorld2hand, ee_pose, handObjectContact, ee_range, align_transform
+        trajectory = self.retarget_trajectory(
+            camWorld2hand, ee_pose, ee_range, align_transform
         )
         smooth_trajectory = self.smooth_trajectory(trajectory)
-        return smooth_trajectory, valid_idxs
+        return smooth_trajectory, handObjectContact, valid_idxs
 
     def load_trajectory(self):
         raise NotImplementedError("To be implemented in subclass")
@@ -36,10 +37,9 @@ class BaseDataset:
         and Slerp for quaternions
 
         Args:
-        - trajectory: numpy array of shape (N, 8)
+        - trajectory: numpy array of shape (N, 7)
             - First 3: xyz positions
             - Next 4: quaternion (w,x,y,z)
-            - Last: gripper position
         - window: smoothing window size (must be odd)
         - poly_order: polynomial order for fitting
 
@@ -52,8 +52,8 @@ class BaseDataset:
 
         smoothed = np.zeros_like(trajectory)
 
-        # Smooth positions and gripper
-        for col in [0, 1, 2, 7]:
+        # Smooth positions
+        for col in [0, 1, 2]:
             smoothed[:, col] = savgol_filter(
                 trajectory[:, col], window_length=window, polyorder=poly_order
             )
@@ -81,8 +81,8 @@ class BaseDataset:
             smoothed[i, 3:7] = avg_quat
         return smoothed
 
-    def retarget_hand_trajectory(
-        self, camWorld2hand, robotWorld2ee, handObjectContact, ee_range, align_transform
+    def retarget_trajectory(
+        self, camWorld2hand, robotWorld2ee, ee_range, align_transform
     ):
         """
         Align hand coordinates with end effector.
@@ -111,9 +111,8 @@ class BaseDataset:
         robot_trajectory_quat = mat2quat(robotWorld2hand[:, :3, :3])  # w,x,y,z
         robot_trajectory_pos = robotWorld2hand[:, :3, 3]
 
-        robot_gripper_state = handObjectContact[:, None]
         trajectory = np.concatenate(
-            [robot_trajectory_pos, robot_trajectory_quat, robot_gripper_state], axis=-1
+            [robot_trajectory_pos, robot_trajectory_quat], axis=-1
         )
         return trajectory
 

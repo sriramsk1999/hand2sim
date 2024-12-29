@@ -17,6 +17,7 @@ from environments.robohive_env import RoboHiveRetargetEnv
 def main(
     env_name,
     dataset_name,
+    embodiment,
     seed,
     input_path,
     output_path,
@@ -35,22 +36,27 @@ def main(
 
     # And the environment we're using as a target
     if env_name == "robohive":
-        environment = RoboHiveRetargetEnv(seed)
+        environment = RoboHiveRetargetEnv(seed, embodiment)
     elif env_name == "isaacsim":
-        environment = IsaacSimRetargetEnv(seed, simulation_app)
+        environment = IsaacSimRetargetEnv(seed, embodiment, simulation_app)
     else:
         raise NotImplementedError
 
     # Retarget the trajectory for the specified environment
-    trajectory, valid_idxs = dataset.get_trajectory(
-        environment.init_ee_pose, environment.ee_range, environment.align_transform
+    trajectory, hand_actions, valid_idxs = dataset.get_trajectory(
+        environment.init_ee_pose,
+        environment.ee_range,
+        environment.align_transform,
+        embodiment,
     )
     horizon = trajectory.shape[0]
 
     # Render images for visualization
     sim_imgs = []
     for i_step in tqdm(range(horizon)):
-        image = environment.step_and_render(i_step, trajectory[i_step])
+        image = environment.step_and_render(
+            i_step, trajectory[i_step], hand_actions[i_step]
+        )
         sim_imgs.append(image)
 
     sim_imgs = np.array(sim_imgs)
@@ -60,7 +66,7 @@ def main(
         sim_imgs,
         dataset.real_img_path,
         valid_idxs,
-        f"{output_path}/{env_name}-{output_name}",
+        f"{output_path}/{env_name}-{embodiment}-{output_name}",
         dataset.viz_fps,
     )
     environment.close()
@@ -88,6 +94,14 @@ if __name__ == "__main__":
         help="Dataset to load",
     )
     parser.add_argument(
+        "-emb",
+        "--embodiment",
+        type=str,
+        default="pjaw",
+        choices=["pjaw", "allegro"],
+        help="Embodiment to retarget to (pjaw - parallel jaw gripper)",
+    )
+    parser.add_argument(
         "-s",
         "--seed",
         type=int,
@@ -106,4 +120,11 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    main(args.env_name, args.dataset, args.seed, args.input_path, args.output_path)
+    main(
+        args.env_name,
+        args.dataset,
+        args.embodiment,
+        args.seed,
+        args.input_path,
+        args.output_path,
+    )

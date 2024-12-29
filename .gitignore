@@ -9,3 +9,5 @@ build
 htmlcov
 
 real2sim_viz/
+
+mano/models

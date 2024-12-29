@@ -5,8 +5,14 @@ from glob import glob
 import cv2
 import numpy as np
 import open3d as o3d
+import torch
+from manopth import demo
+from manopth.manolayer import ManoLayer
+from utils import add_back_legacy_types_numpy
 
 from datasets.base_dataset import BaseDataset
+
+MANO_ROOT = "mano/models"
 
 
 class HOI4DDataset(BaseDataset):
@@ -14,12 +20,15 @@ class HOI4DDataset(BaseDataset):
         super().__init__(base_path)
         self.real_img_path = f"{base_path}/align_rgb/*jpg"
         self.viz_fps = 30
+        add_back_legacy_types_numpy()
+        self.mano_layer = ManoLayer(mano_root="mano/models", use_pca=False, ncomps=45)
 
     def load_trajectory(self):
         """loads a trajectory from hoi4d
         - validIdxs - mask of frames in which a hand is visible
         - camWorld2hand - The trajectory of the hand wrt /world/ camera (first frame of video)
         - hoiContact - Binary array indicating hand/object contact in every frame
+        - hand_pose3d - 3D hand pose, extracted using MANO
 
         This function uses the camera trajectory and hand pose in each frame
         to compute the camWorld2hand trajectory. validIdxs is given in the
@@ -41,6 +50,7 @@ class HOI4DDataset(BaseDataset):
         camWorld2cam = np.linalg.inv(cam2camWorld)
 
         cam2hand = []
+        thetas, betas = [], []
         # in some frames, the hand might not be visible, filter these out
         validIdxs = np.array(
             sorted(
@@ -52,22 +62,34 @@ class HOI4DDataset(BaseDataset):
             data = pickle.load(f)
             pose = np.eye(4)
             global_rot = data["poseCoeff"][:3]
+
+            thetas.append(data["poseCoeff"])
+            betas.append(data["beta"])
+
             global_rot = cv2.Rodrigues(global_rot)[0]
             pose[:3, :3] = global_rot
             pose[:3, 3] = data["trans"]
             cam2hand.append(pose)
             f.close()
         cam2hand = np.array(cam2hand)
+        camWorld2hand = camWorld2cam[validIdxs] @ cam2hand
 
+        # Hand-object Contact
         seg_dir = f"{self.base_path}/2Dseg/shift_mask/"
         if not os.path.exists(seg_dir):
             seg_dir = f"{self.base_path}/2Dseg/mask/"
 
         segmasks = np.array([cv2.imread(i) for i in sorted(glob(f"{seg_dir}/*png"))])
-
-        camWorld2hand = camWorld2cam[validIdxs] @ cam2hand
         hoiContact = self.check_hand_object_contact(segmasks)[validIdxs]
-        return validIdxs, camWorld2hand, hoiContact
+
+        # Hand poses
+        thetas, betas = torch.from_numpy(np.array(thetas)), torch.from_numpy(
+            np.array(betas)
+        )
+        hand_verts, hand_joints = self.mano_layer(thetas, betas)
+        hand_pose3d = hand_joints.numpy()
+
+        return validIdxs, camWorld2hand, hoiContact, hand_pose3d
 
     def check_hand_object_contact(self, segmasks):
         """

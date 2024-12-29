@@ -85,7 +85,7 @@ class GenericDataset(BaseDataset):
         hoiContact = np.load(f"{self.base_path}/contactHands.npy")[validIdxs]
 
         camWorld2hand = camWorld2cam[validIdxs] @ cam2hand
-        return validIdxs, camWorld2hand, hoiContact
+        return validIdxs, camWorld2hand, hoiContact, None
 
     def map_keypoint_to_resized_img(self, keypoint, orig_size, new_size):
         """Map hand keypoint to resized image.

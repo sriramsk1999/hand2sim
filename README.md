@@ -8,11 +8,17 @@ conda activate real2sim
 robohive_init
 ```
 
+Download `MANO_RIGHT.pkl` from the [MANO website](https://mano.is.tue.mpg.de/) and place it at `mano/models/`.
+
 ## Usage
 
+Example usage:
+
 ``` sh
-python real2sim.py --dataset "hoi4d" --path "/path/to/hoi4d/video/"
+python real2sim.py --dataset "hoi4d" --path "/path/to/hoi4d/video/" --env_name isaacsim --embodiment allegro
 ```
+
+Please refer `real2sim.py` for other options (using different datasets/environments/embodiments).
 
 ## Pipeline (WIP)
 

@@ -21,7 +21,7 @@ class BaseDataset:
         - align_transform -> handling coord system changes for the retargeted trajectory
         - embodiment -> The desired target embodiment for retarget to.
         """
-        valid_idxs, camWorld2hand, handObjectContact = self.load_trajectory()
+        valid_idxs, camWorld2hand, handObjectContact, handPoses = self.load_trajectory()
         trajectory = self.retarget_trajectory(
             camWorld2hand, ee_pose, ee_range, align_transform
         )

@@ -62,3 +62,17 @@ def read_video_from_path(path):
     for i, im in enumerate(reader):
         frames.append(np.array(im))
     return np.stack(frames)
+
+
+def add_back_legacy_types_numpy():
+    """
+    A hacky way to add back deprecated imports into numpy.
+    This is necessary because Omniverse imports its own numpy which is a newer
+    version without these types and MANO relies on these types.
+    """
+    np.bool = np.bool_
+    np.int = np.int_
+    np.float = np.float_
+    np.complex = np.complex_
+    np.object = np.object_
+    np.str = np.str_

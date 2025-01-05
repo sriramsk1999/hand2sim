@@ -49,6 +49,8 @@ class IsaacSimRetargetEnv:
         ee_pos, ee_rot = franka_IK.compute_end_effector_pose()
         self.init_ee_pose[:3, 3] = ee_pos
         self.init_ee_pose[:3, :3] = ee_rot
+        self.franka_articulation = franka_articulation
+        self.joint_properties = franka_articulation.dof_properties
 
         # min-max range of x/y/z values signifying the valid range of end effector positions
         self.ee_range = np.array([0.3, 0.6, -0.25, 0.25, 0.3, 0.6])
@@ -89,8 +91,7 @@ class IsaacSimRetargetEnv:
         )
 
         if success:
-            self.franka.apply_action(action)
-            self.apply_hand_action(self.embodiment, hand_action)
+            self.apply_action(self.embodiment, action, hand_action)
         else:
             print(f"IK(t:{step_num}):: Status:{success}")
 
@@ -102,7 +103,7 @@ class IsaacSimRetargetEnv:
             rgb_data = np.zeros((self.resolution[1], self.resolution[0], 3))
         return rgb_data.astype(np.uint8)
 
-    def apply_hand_action(self, embodiment, hand_action):
+    def apply_action(self, embodiment, action, hand_action):
         if embodiment == "pjaw":
             # Valid values in [0,0.05] where 0.05 means open.
             # Incoming labels are in {0, 1} where 1 is closed.
@@ -110,9 +111,95 @@ class IsaacSimRetargetEnv:
             self.hand_action.joint_positions = 0.05 - (
                 np.array([hand_action, hand_action]) / 20
             )
+            self.franka.apply_action(action)
             self.gripper.apply_action(self.hand_action)
         elif embodiment == "allegro":
-            pass
+            allegro_action = ArticulationAction()
+            allegro_action.joint_positions = np.concatenate(
+                [action.joint_positions, np.zeros(16)]
+            )
+
+            lower = self.joint_properties["lower"]
+            upper = self.joint_properties["upper"]
+
+            # Assuming norm of angles lie in [0, pi/2], scale to lower/upper bound of allegro joint
+            def map_angle_to_allegro(angle, lower, upper):
+                return lower + angle * (upper - lower) / (np.pi / 2)
+
+            # Skip retargeting the abduction joints, except for the thumb.
+            # Take the norm of each joint's 3 joint angles. Since the finger joints have
+            # one primary DoF, taking the norm should be a decent approximation for
+            # the magnitude of actuation.
+            # Indexes for theta angles:
+            # 0-3 -> global rotation, used for end effector IK
+            # 3-12 -> index finger joints
+            # 12-21 -> middle finger
+            # 21-30 -> pinky finger (pinky and ring are swapped?)
+            # 30-39 -> ring finger
+            # 39-48 -> thumb
+            retargeted_angles = {
+                "index_joint_0": None,
+                "middle_joint_0": None,
+                "ring_joint_0": None,
+                "thumb_joint_0": np.linalg.norm(hand_action[39:42]),
+                "index_joint_1": np.linalg.norm(hand_action[3:6]),
+                "middle_joint_1": np.linalg.norm(hand_action[12:15]),
+                "ring_joint_1": np.linalg.norm(hand_action[30:33]),
+                "thumb_joint_1": None,
+                "index_joint_2": np.linalg.norm(hand_action[6:9]),
+                "middle_joint_2": np.linalg.norm(hand_action[15:18]),
+                "ring_joint_2": np.linalg.norm(hand_action[33:36]),
+                "thumb_joint_2": np.linalg.norm(hand_action[42:45]),
+                "index_joint_3": np.linalg.norm(hand_action[9:12]),
+                "middle_joint_3": np.linalg.norm(hand_action[18:21]),
+                "ring_joint_3": np.linalg.norm(hand_action[36:39]),
+                "thumb_joint_3": np.linalg.norm(hand_action[45:48]),
+            }
+
+            # Indexes for Franka-Allegro joints
+            # 0-7 -> Franka arm
+            # 7/8/9/10 - index/middle/ring/thumb abduct
+            # 11/12/13/14 - index/middle/ring/thumb knuckle
+            # 15/16/17/18 - index/middle/ring/thumb joint2
+            # 19/20/21/22 - index/middle/ring/thumb joint3
+            allegro_action.joint_positions[10] = map_angle_to_allegro(
+                retargeted_angles["thumb_joint_0"], lower[10], upper[10]
+            )
+            allegro_action.joint_positions[11] = map_angle_to_allegro(
+                retargeted_angles["index_joint_1"], lower[11], upper[11]
+            )
+            allegro_action.joint_positions[12] = map_angle_to_allegro(
+                retargeted_angles["middle_joint_1"], lower[12], upper[12]
+            )
+            allegro_action.joint_positions[13] = map_angle_to_allegro(
+                retargeted_angles["ring_joint_1"], lower[13], upper[13]
+            )
+            allegro_action.joint_positions[15] = map_angle_to_allegro(
+                retargeted_angles["index_joint_2"], lower[15], upper[15]
+            )
+            allegro_action.joint_positions[16] = map_angle_to_allegro(
+                retargeted_angles["middle_joint_2"], lower[16], upper[16]
+            )
+            allegro_action.joint_positions[17] = map_angle_to_allegro(
+                retargeted_angles["ring_joint_2"], lower[17], upper[17]
+            )
+            allegro_action.joint_positions[18] = map_angle_to_allegro(
+                retargeted_angles["thumb_joint_2"], lower[18], upper[18]
+            )
+            allegro_action.joint_positions[19] = map_angle_to_allegro(
+                retargeted_angles["index_joint_3"], lower[19], upper[19]
+            )
+            allegro_action.joint_positions[20] = map_angle_to_allegro(
+                retargeted_angles["middle_joint_3"], lower[20], upper[20]
+            )
+            allegro_action.joint_positions[21] = map_angle_to_allegro(
+                retargeted_angles["ring_joint_3"], lower[21], upper[21]
+            )
+            allegro_action.joint_positions[22] = map_angle_to_allegro(
+                retargeted_angles["thumb_joint_3"], lower[22], upper[22]
+            )
+
+            self.franka.apply_action(allegro_action)
         else:
             raise NotImplementedError
 

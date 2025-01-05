@@ -86,9 +86,9 @@ class HOI4DDataset(BaseDataset):
             np.array(betas)
         )
         hand_verts, hand_joints = self.mano_layer(thetas, betas)
-        hand_pose3d = hand_joints.numpy()
+        handJointAngles = thetas.numpy()
 
-        return validIdxs, camWorld2hand, hoiContact, hand_pose3d
+        return validIdxs, camWorld2hand, hoiContact, handJointAngles
 
     def check_hand_object_contact(self, segmasks):
         """

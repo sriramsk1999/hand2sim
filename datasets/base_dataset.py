@@ -21,14 +21,16 @@ class BaseDataset:
         - align_transform -> handling coord system changes for the retargeted trajectory
         - embodiment -> The desired target embodiment for retarget to.
         """
-        valid_idxs, camWorld2hand, handObjectContact, handPoses = self.load_trajectory()
+        valid_idxs, camWorld2hand, handObjectContact, handJointAngles = (
+            self.load_trajectory()
+        )
 
         trajectory = self.retarget_trajectory(
             camWorld2hand, ee_pose, ee_range, align_transform
         )
         smooth_trajectory = self.smooth_trajectory(trajectory)
         handActions = self.retarget_hand_actions(
-            handObjectContact, handPoses, embodiment
+            handObjectContact, handJointAngles, embodiment
         )
 
         return smooth_trajectory, handActions, valid_idxs
@@ -121,15 +123,13 @@ class BaseDataset:
         )
         return trajectory
 
-    def retarget_hand_actions(self, handObjectContact, handPoses, embodiment):
+    def retarget_hand_actions(self, handObjectContact, handJointAngles, embodiment):
         handActions = None
         if embodiment == "pjaw":
             handActions = handObjectContact
         elif embodiment == "allegro":
-            # Drop root joint, and joints associated with pinky finger
-            # FIXME
-            handActions = handPoses.copy()[:, 1:]
-            handActions = handActions[:, :-4]
+            # Return the hand joint angles, "theta" params of MANO
+            handActions = handJointAngles.copy()
         return handActions
 
     def write_real_sim_video(

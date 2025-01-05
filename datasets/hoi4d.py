@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 import open3d as o3d
 import torch
-from manopth import demo
 from manopth.manolayer import ManoLayer
 from utils import add_back_legacy_types_numpy
 

@@ -22,11 +22,16 @@ class BaseDataset:
         - embodiment -> The desired target embodiment for retarget to.
         """
         valid_idxs, camWorld2hand, handObjectContact, handPoses = self.load_trajectory()
+
         trajectory = self.retarget_trajectory(
             camWorld2hand, ee_pose, ee_range, align_transform
         )
         smooth_trajectory = self.smooth_trajectory(trajectory)
-        return smooth_trajectory, handObjectContact, valid_idxs
+        handActions = self.retarget_hand_actions(
+            handObjectContact, handPoses, embodiment
+        )
+
+        return smooth_trajectory, handActions, valid_idxs
 
     def load_trajectory(self):
         raise NotImplementedError("To be implemented in subclass")
@@ -115,6 +120,17 @@ class BaseDataset:
             [robot_trajectory_pos, robot_trajectory_quat], axis=-1
         )
         return trajectory
+
+    def retarget_hand_actions(self, handObjectContact, handPoses, embodiment):
+        handActions = None
+        if embodiment == "pjaw":
+            handActions = handObjectContact
+        elif embodiment == "allegro":
+            # Drop root joint, and joints associated with pinky finger
+            # FIXME
+            handActions = handPoses.copy()[:, 1:]
+            handActions = handActions[:, :-4]
+        return handActions
 
     def write_real_sim_video(
         self, sim_imgs, real_img_path, valid_idxs, output_path, fps

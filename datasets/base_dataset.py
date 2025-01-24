@@ -8,6 +8,15 @@ from scipy.spatial.transform import Rotation
 
 
 class BaseDataset:
+    """
+    A base dataset class describing the interface of the expected
+
+    get_trajectory is the entrypoint,
+    which calls load_trajectory in the subclass to handle the data loading
+    and then we have the retarget functions to retarget the trajectory
+    based on environment/embodiment.
+    """
+
     def __init__(self, base_path):
         self.base_path = base_path
 
@@ -40,7 +49,7 @@ class BaseDataset:
 
     def smooth_trajectory(self, trajectory, window=5, poly_order=3):
         """
-        Smooth trajectory using Savitzky-Golay for positions/gripper
+        Smooth trajectory using Savitzky-Golay for positions
         and Slerp for quaternions
 
         Args:
@@ -93,7 +102,7 @@ class BaseDataset:
     ):
         """
         Align hand coordinates with end effector.
-        retarget the 4x4 extrinsics to quaternion/translation/gripper state
+        retarget the 4x4 extrinsics to quaternion/translation
         """
         robotWorld2camWorld = robotWorld2ee @ np.linalg.inv(camWorld2hand[0])
         robotWorld2hand = robotWorld2camWorld @ camWorld2hand
@@ -124,6 +133,9 @@ class BaseDataset:
         return trajectory
 
     def retarget_hand_actions(self, handObjectContact, handJointAngles, embodiment):
+        """
+        Retarget the hand actions for different embodiments.
+        """
         handActions = None
         if embodiment == "pjaw":
             handActions = handObjectContact

@@ -1,4 +1,4 @@
-# Retargeting human web videos to robot trajectories
+# Retargeting human demonstrations to robot trajectories
 
 ## Installation
 
@@ -32,8 +32,6 @@ To set up this entire pipeline, we require the following annotations:
 
 These annotations are acquired with the following off-the-shelf models:
 
-- **Camera Pose** - Monst3R
-- **Hand Pose** - HaMeR
-- **Depth** - Monst3R (HaMeR provides weak perspective hand positions, can be inconsistent over a video. Thus we can use a dedicated depth estimator and then only use hand orientation from HaMeR, not the hand position itself).
+- **Camera Pose** - HaWoR / HAPTIC
 - **Hand-Object Contact Flag** - ContactHands
 

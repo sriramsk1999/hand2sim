@@ -12,7 +12,7 @@ class GenericDataset(BaseDataset):
     def __init__(self, base_path):
         raise NotImplementedError(
             "This dataset makes a lot of assumptions on the paths. Refactor/clean it up.\
-            Additionally, doesn't pass hand pose."
+            Additionally, doesn't pass hand pose. Probably switch to Hawor/haptic."
         )
         super().__init__(base_path)
         self.monst3r_dim = 224

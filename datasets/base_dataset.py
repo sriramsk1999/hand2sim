@@ -30,7 +30,7 @@ class BaseDataset:
         - align_transform -> handling coord system changes for the retargeted trajectory
         - embodiment -> The desired target embodiment for retarget to.
         """
-        valid_idxs, camWorld2hand, handObjectContact, handJointAngles = (
+        valid_idxs, camWorld2hand, hand_object_contact, hand_joint_angles = (
             self.load_trajectory()
         )
 
@@ -38,11 +38,11 @@ class BaseDataset:
             camWorld2hand, ee_pose, ee_range, align_transform
         )
         smooth_trajectory = self.smooth_trajectory(trajectory)
-        handActions = self.retarget_hand_actions(
-            handObjectContact, handJointAngles, embodiment
+        hand_actions = self.retarget_hand_actions(
+            hand_object_contact, hand_joint_angles, embodiment
         )
 
-        return smooth_trajectory, handActions, valid_idxs
+        return smooth_trajectory, hand_actions, valid_idxs
 
     def load_trajectory(self):
         raise NotImplementedError("To be implemented in subclass")
@@ -132,16 +132,16 @@ class BaseDataset:
         )
         return trajectory
 
-    def retarget_hand_actions(self, handObjectContact, handJointAngles, embodiment):
+    def retarget_hand_actions(self, hand_object_contact, hand_joint_angles, embodiment):
         """
         Retarget the hand actions for different embodiments.
         """
         handActions = None
         if embodiment == "pjaw":
-            handActions = handObjectContact
+            handActions = hand_object_contact
         elif embodiment == "allegro":
             # Return the hand joint angles, "theta" params of MANO
-            handActions = handJointAngles.copy()
+            handActions = hand_joint_angles.copy()
         return handActions
 
     def write_real_sim_video(

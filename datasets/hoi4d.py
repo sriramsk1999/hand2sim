@@ -24,14 +24,14 @@ class HOI4DDataset(BaseDataset):
 
     def load_trajectory(self):
         """loads a trajectory from hoi4d
-        - validIdxs - mask of frames in which a hand is visible
+        - valid_idxs - mask of frames in which a hand is visible
         - camWorld2hand - The trajectory of the hand wrt /world/ camera (first frame of video)
-        - hoiContact - Binary array indicating hand/object contact in every frame
+        - hand_object_contact - Binary array indicating hand/object contact in every frame
         - hand_pose3d - 3D hand pose, extracted using MANO
 
         This function uses the camera trajectory and hand pose in each frame
-        to compute the camWorld2hand trajectory. validIdxs is given in the
-        dataset and hoiContact is computed by checking if the hand segmask
+        to compute the camWorld2hand trajectory. valid_idxs is given in the
+        dataset and hand_object_contact is computed by checking if the hand segmask
         overlaps with the object segmask.
         """
         cam_trajectory = o3d.io.read_pinhole_camera_trajectory(
@@ -51,12 +51,12 @@ class HOI4DDataset(BaseDataset):
         cam2hand = []
         thetas, betas = [], []
         # in some frames, the hand might not be visible, filter these out
-        validIdxs = np.array(
+        valid_idxs = np.array(
             sorted(
                 [int(i.split(".")[0]) for i in os.listdir(f"{self.base_path}/handpose")]
             )
         )
-        for idx in validIdxs:
+        for idx in valid_idxs:
             f = open(f"{self.base_path}/handpose/{idx}.pickle", "rb")
             data = pickle.load(f)
             pose = np.eye(4)
@@ -71,7 +71,7 @@ class HOI4DDataset(BaseDataset):
             cam2hand.append(pose)
             f.close()
         cam2hand = np.array(cam2hand)
-        camWorld2hand = camWorld2cam[validIdxs] @ cam2hand
+        camWorld2hand = camWorld2cam[valid_idxs] @ cam2hand
 
         # Hand-object Contact
         seg_dir = f"{self.base_path}/2Dseg/shift_mask/"
@@ -79,23 +79,23 @@ class HOI4DDataset(BaseDataset):
             seg_dir = f"{self.base_path}/2Dseg/mask/"
 
         segmasks = np.array([cv2.imread(i) for i in sorted(glob(f"{seg_dir}/*png"))])
-        hoiContact = self.check_hand_object_contact(segmasks)[validIdxs]
+        hand_object_contact = self.check_hand_object_contact(segmasks)[valid_idxs]
 
         # Hand poses
         thetas, betas = torch.from_numpy(np.array(thetas)), torch.from_numpy(
             np.array(betas)
         )
         hand_verts, hand_joints = self.mano_layer(thetas, betas)
-        handJointAngles = thetas.numpy()
+        hand_joint_angles = thetas.numpy()
 
-        return validIdxs, camWorld2hand, hoiContact, handJointAngles
+        return valid_idxs, camWorld2hand, hand_object_contact, hand_joint_angles
 
     def check_hand_object_contact(self, segmasks):
         """
         Check for contact between a hand mask (in green) and any colored objects
         in a list of segmentation masks. Specifically for HOI4D data
         """
-        handObjectContact = []
+        hand_object_contact = []
         lower_green = np.array([0, 128, 0])  # Lower bound for green in BGR
         upper_green = np.array([100, 255, 100])  # Upper bound for green in BGR
         kernel = np.ones((5, 5), np.uint8)
@@ -115,7 +115,7 @@ class HOI4DDataset(BaseDataset):
             overlap = cv2.bitwise_and(hand_dilated, object_dilated)
 
             if np.any(overlap):
-                handObjectContact.append(1)
+                hand_object_contact.append(1)
             else:
-                handObjectContact.append(0)
-        return np.array(handObjectContact)
+                hand_object_contact.append(0)
+        return np.array(hand_object_contact)

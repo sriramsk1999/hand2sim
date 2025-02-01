@@ -38,31 +38,49 @@ def main(
         item = dataset[i]
 
         # Retarget the trajectory for the specified environment
-        trajectory, hand_actions, valid_idxs = item.get_trajectory(
-            environment.init_ee_pose,
-            environment.ee_range,
-            environment.align_transform,
-            embodiment,
-        )
+        try:
+            trajectory, hand_actions, valid_idxs = item.get_trajectory(
+                environment.init_ee_pose,
+                environment.ee_range,
+                environment.align_transform,
+                embodiment,
+            )
+        except Exception as e:
+            print(
+                f"Could not process: {item.base_path}, due to the following exception: {e}"
+            )
+            continue
         horizon = trajectory.shape[0]
 
         # Render images for visualization
-        sim_imgs = []
+        sim_imgs, qpos_arr, success_arr = [], [], []
         for i_step in tqdm(range(horizon)):
             image, qpos, success = environment.step_and_render(
                 i_step, trajectory[i_step], hand_actions[i_step]
             )
             sim_imgs.append(image)
+            qpos_arr.append(qpos)
+            success_arr.append(success)
 
+        qpos_arr, success_arr = np.array(qpos_arr), np.array(success_arr)
+        cam_name_start_idx = item.base_path.find("ZY2021")
+        save_name = item.base_path[cam_name_start_idx:].replace("/", "_")
+        with h5py.File(f"{output_path}/{save_name}.h5", "w") as hf:
+            hf["ee_pos"] = trajectory
+            hf["qpos"] = qpos_arr
+            hf["success"] = success_arr
+            hf["vaild_idxs"] = valid_idxs
+            hf["environment"] = env_name
+            hf["embodiment"] = embodiment
+
+        # Visualize
         if i % 100 == 0:
             sim_imgs = np.array(sim_imgs)
-
-            output_name = item.base_path.replace("/", "_") + ".mp4"
             item.write_real_sim_video(
                 sim_imgs,
                 item.real_img_path,
                 valid_idxs,
-                f"{output_path}/{env_name}-{embodiment}-{output_name}",
+                f"{output_path}/{env_name}-{embodiment}-{save_name}.mp4",
                 item.viz_fps,
             )
         environment.reset()

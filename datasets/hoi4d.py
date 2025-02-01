@@ -14,13 +14,83 @@ from datasets.base_dataset import BaseDataset
 MANO_ROOT = "mano/models"
 
 
+class HOI4DDatasetWrapper:
+    """A wrapper for the HOI4DDataset class, used to iterate over the entire
+    HOI4D dataset whereas HOI4DDataset processes data for a single clip.
+
+    Can probably refactor into a single class ....
+    """
+
+    def __init__(self, dataset_dir):
+        self.dataset_dir = dataset_dir
+        self.videos = sorted(glob(f"{self.dataset_dir}/**/image.mp4", recursive=True))
+        self.intrinsic_dict = self.load_intrinsics()
+
+    def __len__(self):
+        return len(self.videos)
+
+    def load_intrinsics(self):
+        """
+        Load camera intrinsics for HOI4D. A bit hacky.
+        Camera intrinsics are expected to be placed one level above hoi4d dir
+        with the directory name "camera_params"
+        """
+        intrinsic_dict = {}
+        for cam_name in [
+            "ZY20210800001",
+            "ZY20210800002",
+            "ZY20210800003",
+            "ZY20210800004",
+        ]:
+            cam_param_pathname = f"{self.dataset_dir}/../camera_params/{cam_name}/"
+            intrinsic_dict[cam_name] = np.load(f"{cam_param_pathname}/intrin.npy")
+        return intrinsic_dict
+
+    def __getitem__(self, idx):
+        vid_path = self.videos[idx]
+
+        dir_name = os.path.dirname(os.path.dirname(vid_path))
+        cam_name_start_idx = dir_name.find("ZY2021")
+        video_id = dir_name[cam_name_start_idx:]
+        cam_name = video_id[:13]
+        K = self.intrinsic_dict[cam_name]
+        handpose_path = (
+            f"{self.dataset_dir}/../handpose/refinehandpose_right/{video_id}"
+        )
+        item = HOI4DDataset(dir_name, handpose_path=handpose_path, intrinsics=K)
+        return item
+
+
 class HOI4DDataset(BaseDataset):
-    def __init__(self, base_path):
+    """
+    Dataset class for *one* event from the HOI4D dataset
+    Use the wrapper class to iterate over the entire dataset.
+    TODO: Refactor into a single dataset class
+    """
+
+    def __init__(self, base_path, handpose_path=None, intrinsics=None):
         super().__init__(base_path)
         self.real_img_path = f"{base_path}/align_rgb/*jpg"
+        self.handpose_path = (
+            handpose_path
+            if handpose_path is not None
+            else f"{self.base_path}/handpose/"
+        )
         self.viz_fps = 30
         add_back_legacy_types_numpy()
         self.mano_layer = ManoLayer(mano_root="mano/models", use_pca=False, ncomps=45)
+        # One of the 4 cameras from the dataset, others are pretty similar
+        self.K = (
+            intrinsics
+            if intrinsics is not None
+            else np.array(
+                [
+                    [1.0602955e03, 0.0000000e00, 9.7152105e02],
+                    [0.0000000e00, 1.0615068e03, 5.2326190e02],
+                    [0.0000000e00, 0.0000000e00, 1.0000000e00],
+                ]
+            )
+        )
 
     def load_trajectory(self):
         """loads a trajectory from hoi4d
@@ -37,14 +107,6 @@ class HOI4DDataset(BaseDataset):
         cam_trajectory = o3d.io.read_pinhole_camera_trajectory(
             f"{self.base_path}/3Dseg/output.log"
         )
-        # One of the 4 cameras from the dataset, others are pretty similar
-        K = np.array(
-            [
-                [1.0602955e03, 0.0000000e00, 9.7152105e02],
-                [0.0000000e00, 1.0615068e03, 5.2326190e02],
-                [0.0000000e00, 0.0000000e00, 1.0000000e00],
-            ]
-        )
         cam2camWorld = np.array([i.extrinsic for i in cam_trajectory.parameters])
         camWorld2cam = np.linalg.inv(cam2camWorld)
 
@@ -52,12 +114,10 @@ class HOI4DDataset(BaseDataset):
         thetas, betas = [], []
         # in some frames, the hand might not be visible, filter these out
         valid_idxs = np.array(
-            sorted(
-                [int(i.split(".")[0]) for i in os.listdir(f"{self.base_path}/handpose")]
-            )
+            sorted([int(i.split(".")[0]) for i in os.listdir(f"{self.handpose_path}")])
         )
         for idx in valid_idxs:
-            f = open(f"{self.base_path}/handpose/{idx}.pickle", "rb")
+            f = open(f"{self.handpose_path}/{idx}.pickle", "rb")
             data = pickle.load(f)
             pose = np.eye(4)
             global_rot = data["poseCoeff"][:3]

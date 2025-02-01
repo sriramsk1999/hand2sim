@@ -87,7 +87,14 @@ class RoboHiveRetargetEnv:
                 f"IK(t:{step_num}):: Status:{ik_result.success}, total steps:{ik_result.steps}, err_norm:{ik_result.err_norm}"
             )
 
-        return self.env.get_exteroception()["rgb:left_cam:240x424:2d"]
+        return (
+            self.env.get_exteroception()["rgb:left_cam:240x424:2d"],
+            act,
+            ik_result.success,
+        )
 
     def close(self):
         self.env.close()
+
+    def reset(self):
+        self.env.reset()

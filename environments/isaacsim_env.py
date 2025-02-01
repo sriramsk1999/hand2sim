@@ -41,7 +41,6 @@ class IsaacSimRetargetEnv:
 
         self.franka = franka
         self.franka_IK = franka_IK
-        self.hand_action = ArticulationAction()
         self.camera = camera
         self.world = world
         self.simulation_app = simulation_app
@@ -63,6 +62,7 @@ class IsaacSimRetargetEnv:
             # Add the Franka robot + articulation + IK solver
             franka = world.scene.add(Franka(prim_path="/World/franka", name="franka"))
             self.gripper = franka.gripper
+            self.action_shape = 9  # 7 for arm + 2 for gripper
         elif embodiment == "allegro":
             franka_allegro_usd_path = "environments/franka_allegro.usd"
             franka_allegro_prim_path = "/World"
@@ -73,6 +73,7 @@ class IsaacSimRetargetEnv:
                 prim_path=franka_allegro_prim_path,
                 name="franka_allegro",
             )
+            self.action_shape = 23  # 7 for arm + 16 for hand
         else:
             raise NotImplementedError(f"Embodiment {embodiment} not supported.")
         return franka
@@ -93,8 +94,9 @@ class IsaacSimRetargetEnv:
             orientation_tolerance=5e-2,
         )
 
+        qpos = np.zeros_like(self.action_shape)
         if success:
-            self.apply_action(self.embodiment, action, hand_action)
+            qpos = self.apply_action(self.embodiment, action, hand_action)
         else:
             print(f"IK(t:{step_num}):: Status:{success}")
 
@@ -104,25 +106,29 @@ class IsaacSimRetargetEnv:
         rgb_data = self.camera.get_rgb()
         if rgb_data.shape[0] == 0:  # The first 2-3 images are an empty array
             rgb_data = np.zeros((self.resolution[1], self.resolution[0], 3))
-        return rgb_data.astype(np.uint8)
+
+        return rgb_data.astype(np.uint8), qpos, success
 
     def apply_action(self, embodiment, action, hand_action):
         """
         Apply action to robot joints based on solved IK pose
         Similarly retarget the hand action as well.
         """
+        hand_articulation_action = ArticulationAction()
         if embodiment == "pjaw":
             # Valid values in [0,0.05] where 0.05 means open.
             # Incoming labels are in {0, 1} where 1 is closed.
             # Repeat for left/right finger
-            self.hand_action.joint_positions = 0.05 - (
+            hand_articulation_action.joint_positions = 0.05 - (
                 np.array([hand_action, hand_action]) / 20
             )
             self.franka.apply_action(action)
-            self.gripper.apply_action(self.hand_action)
+            self.gripper.apply_action(hand_articulation_action)
+            qpos = np.concatenate(
+                [action.joint_positions, hand_articulation_action.joint_positions]
+            )
         elif embodiment == "allegro":
-            allegro_action = ArticulationAction()
-            allegro_action.joint_positions = np.concatenate(
+            hand_articulation_action.joint_positions = np.concatenate(
                 [action.joint_positions, np.zeros(16)]
             )
 
@@ -185,14 +191,24 @@ class IsaacSimRetargetEnv:
             ]
 
             for joint_index, joint_name in finger_mappings:
-                allegro_action.joint_positions[joint_index] = map_angle_to_allegro(
-                    retargeted_angles[joint_name],
-                    lower[joint_index],
-                    upper[joint_index],
+                hand_articulation_action.joint_positions[joint_index] = (
+                    map_angle_to_allegro(
+                        retargeted_angles[joint_name],
+                        lower[joint_index],
+                        upper[joint_index],
+                    )
                 )
-            self.franka.apply_action(allegro_action)
+            self.franka.apply_action(hand_articulation_action)
+            qpos = hand_articulation_action.joint_positions
         else:
             raise NotImplementedError
+        return qpos
 
     def close(self):
         self.simulation_app.close()
+
+    def reset(self):
+        self.world.reset()
+        self.franka_articulation.initialize()
+        self.franka.initialize()
+        self.camera.initialize()

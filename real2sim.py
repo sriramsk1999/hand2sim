@@ -54,7 +54,7 @@ def main(
     # Render images for visualization
     sim_imgs = []
     for i_step in tqdm(range(horizon)):
-        image = environment.step_and_render(
+        image, qpos, success = environment.step_and_render(
             i_step, trajectory[i_step], hand_actions[i_step]
         )
         sim_imgs.append(image)

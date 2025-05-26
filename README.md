@@ -3,8 +3,10 @@
 ## Installation
 
 ``` sh
-conda env create --file environment.yml
-conda activate real2sim
+
+pixi install
+pixi run install-mano
+pixi shell
 robohive_init
 ```
 

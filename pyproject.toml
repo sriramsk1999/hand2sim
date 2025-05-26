@@ -49,7 +49,7 @@ sqlite = "3.45.*"
 tk = "8.6.*"
 wheel = "*"
 zlib = "1.2.*"
-mesalib = "*"
+mesalib = ">=24.0.7,<25"
 
 # PyPI-specific dependencies
 [tool.pixi.pypi-dependencies]

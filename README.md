@@ -22,6 +22,8 @@ python real2sim.py --dataset "hoi4d" --path "/path/to/hoi4d/video/" --env_name i
 
 Please refer `real2sim.py` for other options (using different datasets/environments/embodiments).
 
+**NOTE:** Might need to set `MESA_GL_VERSION_OVERRIDE=4.6` to make it work on a headless system.
+
 ## Pipeline (WIP)
 
 The goal is to be able to take in any video of a human performing an action, extract the hand trajectory, retarget it to a Franka arm, and replay it in RoboHive.

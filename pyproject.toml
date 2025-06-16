@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ email = "sskrishn@cs.cmu.edu", name = "Sriram Krishna" }]
-dependencies = ["dex-retargeting>=0.4.6,<0.5"]
+dependencies = ["dex-retargeting>=0.4.6,<0.5", "ipdb>=0.13.13,<0.14"]
 
 [project.optional-dependencies]
 develop = [

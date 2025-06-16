@@ -1,9 +1,10 @@
-# Retargeting human demonstrations to robot trajectories
+# Retargeting human videos to robot trajectories
+
+This project aims to be a real2sim pipeline which takes in an in-the-wild video of a human performing an action, extracts the hand trajectory, retargets it to a robot arm, and replays it in simulation.
 
 ## Installation
 
 ``` sh
-
 pixi install
 pixi run install-mano
 pixi shell
@@ -24,18 +25,7 @@ Please refer `real2sim.py` for other options (using different datasets/environme
 
 **NOTE:** Might need to set `MESA_GL_VERSION_OVERRIDE=4.6` to make it work on a headless system.
 
-## Pipeline (WIP)
 
-The goal is to be able to take in any video of a human performing an action, extract the hand trajectory, retarget it to a Franka arm, and replay it in RoboHive.
+## Acknowledgements
 
-To set up this entire pipeline, we require the following annotations:
-
-- **Camera Pose** - To compensate for camera motion when replaying the trajectory
-- **Hand Pose** - To transfer hand motion to the end effector
-- **Hand-Object Contact Flag** - To get open/close actions for the end effector.
-
-These annotations are acquired with the following off-the-shelf models:
-
-- **Camera Pose** - HaWoR / HAPTIC
-- **Hand-Object Contact Flag** - ContactHands
-
+This codebase makes use of [AnyTeleop](https://yzqin.github.io/anyteleop/). We thank the authors for releasing their work!

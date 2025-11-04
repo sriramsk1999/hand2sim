@@ -1,11 +1,11 @@
 [project]
-name = "real2sim"
+name = "hand2sim"
 version = "0.1.0"
-description = "Real2Sim"
+description = "Hand2Sim - A tool for retargeting hand interaction trajectories to robots across simulators"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
-authors = [{ email = "sskrishn@cs.cmu.edu", name = "Sriram Krishna" }]
+authors = [{ email = "sskrishn@cs.cmu.edu", name = "Sriram Krishna" }, { email = "homangablackhole36@gmail.com", name = "Homanga Bharadhwaj" }]
 dependencies = ["dex-retargeting>=0.4.6,<0.5", "ipdb>=0.13.13,<0.14"]
 
 [project.optional-dependencies]
@@ -224,6 +224,7 @@ zipp = "==3.21.0"
 # Installation tasks
 [tool.pixi.tasks]
 install-mano = "pip install git+https://github.com/hassony2/chumpy.git git+https://github.com/hassony2/manopth.git"
+install-pytorch3d = "pip install git+https://github.com/facebookresearch/pytorch3d.git@stable"
 
 # Environments
 [tool.pixi.environments]

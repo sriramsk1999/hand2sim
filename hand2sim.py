@@ -109,14 +109,14 @@ if __name__ == "__main__":
         help="Random seed for reproducibility",
     )
     parser.add_argument(
-        "-ip", "--input_path", type=str, help="Input data for real2sim", required=True
+        "-ip", "--input_path", type=str, help="Input data for hand2sim", required=True
     )
     parser.add_argument(
         "-op",
         "--output_path",
         type=str,
-        default="real2sim_viz",
-        help="Directory to store real2sim viz",
+        default="hand2sim_viz",
+        help="Directory to store hand2sim viz",
     )
 
     args = parser.parse_args()

@@ -8,6 +8,6 @@ tmp/
 build
 htmlcov
 
-real2sim_viz/
+hand2sim_viz/
 
 mano/models

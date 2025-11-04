@@ -126,7 +126,7 @@ if __name__ == "__main__":
         "-op",
         "--output_path",
         type=str,
-        default="hoi4d_real2sim",
+        default="hoi4d_hand2sim",
         help="Directory to store retargeted trajectories and visualizations",
     )
 
